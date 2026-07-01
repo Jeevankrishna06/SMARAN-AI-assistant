@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment Variables
+.env
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Logs
+*.log
+
+# Cache
+.pytest_cache/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# API Keys
+config.json
+
+# Temporary
+temp/
+tmp/
+
+vision_venv/
+tempCodeRunnerFile.py
+__pycache__/
+scratch/

@@ -1,0 +1,1681 @@
+<<<<<<< HEAD
+
+SMARAN-Ai Assistant
+
+Smaran is a voice first desktop home automation assistant designed to do desktop,workflow and computer vision and act as assistant all in a system. smaran is a Sanskrit word which means "remembrance or memory"
+
+Smaran can be activated by either the voice input when it detects the word "wake up" or the hears a clap sound. it wakes up and a cute chibi panda comes up in front of the screen and has a small chat option just incase it cant hear the audio or interpret human voice. smaran has an animated face and has different expressions for different things. smaran's expressions
+
+smaran has a different expression while speaking. he has an expression where he seems to be speaking
+smaran  has a different expression while thinking. smaran keeps his hand near his head while thinking
+smaran has a different expression when listening to music or something in youtube. smaran wears headphone and shows a thumbs up symbol
+smaran cries if there is an error
+
+smaran can hear the audio using groq api as it enables smaran to hear the voice, initially smaran was built as an offline first assistant with whisperflow premium version but due to high latency we went to whisper base model as it has lesser latency but due to accuracy errors, we decided to go with online model where we used groq api for detecting the speaker voice and interpreting the voice and performing the actions.
+
+SMARAN ACTIVATION
+
+Smaran can be activated two ways:
+by voice detection -> when the user says "wake up smaran" if it detects the words "wake up" then it activates
+by clap detection -> if it detects the clap sound then it wakes up and gets activated
+when it wakes up a cute chibi panda whose name is smaran wakes up , he has two voice options.
+MALE VOICE :- Microsoft David (UNITED STATES OF AMERICA) |
+FEMALE VOICE :- Microsoft HAZEL(GREAT BRITAIN)
+These two are Default Text to speech voices present inside windows 11, I used them as they are free and easy to access,
+users get access to both the voices if they want male all they need to do is press on male voice and for female they have to press the female voice.
+
+How Smaran's Wake and Voice Detection System Works
+Smaran features a unified, hardware-resilient listening architecture that monitors both physical wake-ups (hand claps) and voice wake-ups (speech commands) simultaneously without locking the audio hardware.
+
+1. Real-time Audio Capture (BufferedMicSource)
+Smaran creates a custom wrapper subclassing the standard speech_recognition.Microphone.
+
+Shared Stream Proxy: Instead of opening separate streams (which causes Windows audio driver collisions), it captures a single native hardware stream.
+Dual Routing: It constantly feeds raw chunks into a thread-safe Queue for speech recognition, while maintaining a 0.5-second rolling audio buffer in memory for DSP (Digital Signal Processing) clap analysis.
+2. Clap Wake Detection (ClapClassifier)
+To identify a clap and separate it from background laptop fan hum, mouse clicks, or human speech, the system runs the 0.5s audio buffer through four mathematical filters:
+
+Rise Time (Attack): A clap is an impulsive sound. The classifier tracks the sound's onset; the amplitude must rise from background noise to its peak extremely quickly (under 50 milliseconds).
+Decay Ratio (Reverberation): Unlike sustained speech, a clap decays instantly. The system compares the peak energy to the energy 100ms–200ms later. If the ratio doesn't drop significantly (decay ratio <0.6), it is flagged as speech and ignored.
+Zero Crossing Rate (ZCR): High ZCR indicates sharp, high-frequency broadband noise. Laptop microphones often apply low-pass filters that suppress this high-frequency noise. We relaxed the threshold to 0.01 so that quiet hand claps are still captured.
+Signal-to-Noise Ratio (SNR): Instead of checking absolute volume, the classifier calculates the relative SNR (ratio of peak RMS to ambient background noise RMS). As long as the peak is at least 
+2× louder than the background room noise, the clap triggers, enabling low-volume claps to wake the system.
+
+3. Voice Wake Detection
+When Smaran is in standby, a background thread continuously passes the audio queue to SpeechRecognition utilizing a local faster-whisper model.
+It listens for specific wake phrases like "wake up" or "hey smaran".
+Repetition & Noise Guards: To prevent fan noise from causing loops, the system discards phrases where a single word occupies more than 
+70% of the audio energy, or single-word conversational fillers.
+
+4. Transition & Deadlock Prevention
+OS Driver Release Delay: When transitioning from calibration to background scanning, the system enforces a 1.0s sleep delay to allow the Windows driver (like Intel Smart Sound) to fully release the hardware device.
+Queue Flushing: Waking up requires stopping the background listener. To prevent thread lock deadlocks, Smaran injects a dummy silent chunk into the queue, immediately releasing the background thread so it can close PyAudio before the active listening loop begins.
+
+PHASE-I 
+PART-1
+ASSISTANT HANDLING TASK
+It can act as an assistant
+-> It can tell how it is when you ask "How are you?"-> responds saying its operating at peak efficiency
+-> when asked "who are you" -> it introduces itself as personal ai assistant
+-> when asked "who created you" -> it responds saying it was created by its owner name (XXX)
+-> when asked "say hello to everyone/friends/guests" -> it introduces itself
+
+-> when asked "give me a briefing" -> it
+greets the user
+tells date and time
+tells the weather
+battery of the laptop
+ex)give me a breifing
+-> when asked give me a quote then it goes through its general vault and finds a quote it has to 10 different quotes in general vault. it gives the quote along with the author name
+apart from that there are 13 different categories such as
+Courage
+Freedom
+Romance
+History
+Grit
+Confidence
+Love
+Self-improvement
+Time-management
+Health
+Spiritual health
+Mental health
+Motivation
+
+in total 13 Different categories each having 10 quotes so a total of 130 quotes present.
+now when someone specifies category and asks quote it chooses a quote from this vault randomly. this process is done using python dictionaries and values format.
+ex) give me a quote about confidence
+
+-> RANDOM NUMBER GENERATOR
+generates a random Number if it the variables 'a' and 'b' is specified.
+ex) generate a number between between 10 and 98
+
+->WEATHER SYSTEM
+tells the current temperature in the city
+ex) tell me the weather
+
+HOME AUTOMATION SYSTEM (Part-II)
+
+-> OPENING APPS
+it can open apps and Ai tools and websites
+
+Apps included are
+*ZenFlow -> zenflow is a vibecoded website which i had created by myself for tracking productivity. 
+zenflow works on the principal of implementation of different time-management tips into a single ecosystem.
+google has google tasks and google calendar but not lists
+microsoft calendar works inside microsoft office but not outside totally but doesnt have eisenhower matrix system
+eisenhower matrix is not something any big major corp has considered 
+
+so zenflow has 
+->tasks (points system , each task has points,positive and negative both)
+->lists 
+->eisenhower matrix
+-> journal 
+-> focus mode
+->pomodoro style timer (except u can only set the time)
+all combined and automated into a single ecosystem style 
+
+obviously i didnt launch but i am using it for my own purpose and created teh system, now i have given the link such that
+it opens the system as and when its called 
+
+*BROWSERS -> Chrome, Opera GX, Brave, Edge
+*Normal apps -> calculator , clock , Notepad , filexplorer, whatsapp
+*AI tools -> Gemini, chatgpt, grok, perplexity, claude
+btw for AI Tools obviously they need a browser hence any ai tool can open in any browser 
+we just have to be very specific with it. Chrome is the default browser 
+ai tool + browser name => automation 
+
+
+ex) open chrome , open gemini in brave browser
+
+-> SEARCH 
+we can search anything we want by using the keyword "search" before starting the sentence.
+specify the keyword and the topic and browser it will work by itself
+formulae -> 'keyword'+topic+browser => automation
+chrome is the global default browser in the entire context 
+ex)search Barcelona in edge browser 
+
+-> CALCULATIONS 
+It performs basic calculations which involve addition,subtraction,multiplication and division
+it requires the keyword "calculate"
+addition = add,plus
+subtraction = subtract,minus
+division = divide,by
+multiplication = multiply,into 
+formula = keyword + expression 
+it can also perform complex calculations involving decimals. it can also perform combined expression
+type questions as well
+Ex) calculate 120 plus 130 in calculator
+
+-> PLAYING MUSIC
+specify four things 
+*song_name,singer/movie,website,browser
+keyword = play
+song_name => name of the song 
+singer/movie => multiple songs can have the same name but different singer or diff movie
+website => where to play the song , youtube music or youtube. (youtube is the default search engine)
+browser => which browser to play music in. opera gx, edge, brave, Chrome. (again chrome is the default browser)
+formulae => play + song_name+singer/movie+website+browser
+smaran has headphone on his ears and thumbs up when playing music 
+if you dont know song just say singer name or movie name , the top search will be played first
+ex) play faded by alan walker in youtube music in brave browser
+
+-> PLAYING PODCAST Or YOUTUBE VIDEO
+pretty much same thing just mention youtube video name and channel name , no need website as it is youtube 
+itself and obviously browser name 
+if you dont know any video name just say the channel name any video related to that channel will open up 
+or the channel will be tagged type will show 
+most times it will play latest video from that channel itself
+formulae -> play + specific_video_title+channel_name+browser 
+ex)play raj shamani in youtube in msedge browser
+
+->Notepad
+keyline = open notepad and type
+saying the keyline along with the certain message will help in making sure notepad is opened and the 
+message starts being typed down there. 
+ex)openn notepad and type i am smaran i am the greatest ai assistant created in human history 
+
+-> QUIET MODE 
+QUIET MODE is an environment where the mic is suspended hence smaran cannot listen any of the 
+queries of the user. this was done because sometimes user is speaking to something or listening to 
+something on the phone but smaran interprets as a request to him so smaran used to get activated.
+to resume smaran'soperation u have to type the word "RESUME" , smaran gets activated.
+ex) activate QUIET/quiet mode smaran
+
+
+PHASE-II 
+smaran can perform agentic tasks but it doesnt have a brain sort of a thing which makes it 
+more like an ai agent so i am building an internal small room where 5 different api's are present 
+and when a task is given a router system is used to find out which task belongs to which api 
+such that the task can be traced to their respective api's properly
+
+to activate intelligence layer first we have to tell "activate intelligence mode"
+when the pattern detects the intelligence mode it opens the intelligence layer where all the 
+agents are present. the tradeback is now the automation layer tasks(phase-I) cannot be performed
+Hence for that to happen u have to come out of intelligence layer by saying "lock intelligence mode" or
+"exit intelligence mode"
+
+Intelligence Layer
+
+Smaran uses a confidence-based routing system to determine the best agent for each query.
+
+this is the routing architecture 
+Routing Architecture
+User Query:- user input message which is spoken with smaran
+↓
+Weighted Scoring:-the message is converted to text and keywords are searched,each agent obviously has 
+certain keywords and if they are found points are alloted using python dictionaries 
+↓
+Confidence Evaluation:- now the agent which has highest keywords is subtracted with the agent which has 
+the second highest keywords, if the gap is high the highest keyword agent wins but if gap is low 
+then it falls back to groq api. groq api will go through sentence and decide who this task is going to 
+be assigned to 
+↓
+Best Agent Selection:- based on the task the best agent among the five agents are going to be selected
+↓
+Response Generation:- the input given by the user the agent sees through it and finds out the best output 
+and gives it back to the user in the form of text 
+↓
+Voice Output:- the same text is then converted to speech and responded by smaran 
+
+entire process takes nearly 10-15 seconds at max depending on the internet speed,input given.
+ex)define library
+
+AGENTS PRESENT INSIDE INTELLIGENCE Layer
+
+Supported Agents
+OPEN-METEO(weather agent):- OPEN-METEO is an weathering api which acts as the weather agent in project
+smaran. unlike before if u ask whats the weather it would give u only the weather but now if u ask 
+weather it gives u more than just that
+
+Provides:
+weather summary :- gives me the weather summary which includes current temperatur,mx_temp,min_temp,rain Probability
+sunrise time and sunset time 
+Current Temperature:- temperature of the city 
+Rain Probability:- rain chances in the city u mentioned
+Sunrise Time:- sunrise time in the city u mentioned
+Sunset Time:- sunset time in the city u mentioned 
+humidity :- 
+windspeed :-
+ex) give me the weather summary of bengaluru
+
+
+Dictionary Agent: the dictionary agent uses the dictionary_api to find out the meaning of a particoular word
+it tells how it is pronounced , gives the meaning of the word as well as its pronounciation
+
+Handles:
+Define
+Meaning
+Mean
+Give me the meaning of
+ex)give me the meaning of lantern
+
+Wikimedia(wikipedia Agent) : wikipedia agent uses wikimedia  api to go to wikipedia and find data
+and gives me the data from the wikipedia. finds information about certain topics 
+
+Handles:
+Research
+Tell me about
+History of
+Who is
+What is
+ex) tell me about reliance industries 
+
+GNEWS(News Agent):- newsagent is basically supposed to give me realtime news updates 
+Provides:
+
+Current news
+Recent events
+Topic-based news searches
+ex) give me the current or latest news about prime minister narendra modi 
+
+
+Gemini Agent:-uses gemini flash 2.5 model for reasoning , it also acts as the fallback api 
+as well 
+
+Used for:
+Reasoning
+Comparisons
+Explanations
+Decision Support
+General Intelligence Queries
+ex)why is earth 
+
+-> System Modes
+
+
+Study Mode:- study mode is an environment where all distratcing app are closed so that user can only
+spend his time focusing on studies.
+Creates a distraction-free study environment.
+
+Workflow:
+
+Close non-essential applications:- close Distracting apps 
+Open Clock:-opens clock so that u can setup a timer for how much time u would wanna study 
+Open YouTube and plays Study Music:- to set up an environment for studying 
+Open Gemini:- if u have doubta to search in gemini as it acts as ur study buddy 
+Open WhatsApp:- to find files notes and pdfs to study
+Open File Explorer:- certain files are stored here in folder or just like that for studying
+Activate Intelligence Mode:- which you aldready know (intelligence layer)
+ex) activate study mode 
+
+
+Developer Mode
+developer mode is for building an environment where when i am probably only doing coding or learning 
+about ai or career related stuff and all that 
+Creates a coding-focused environment.
+
+Workflow:
+
+Preserve VS Code:- vs code which is aldready active will be awake
+Preserve Terminal:- same way as vs code
+Open VS Code:- just incase if they arent active 
+Open Clock:- to setup a timer to decide how long i would want to study 
+Open YouTube Coding Music:- plays coding type ai music just to setup the env
+Open Claude:- to generate code or undertsand code or content or topics how they work
+Open Gemini:- gemini for doing the same thing as claude
+Activate Intelligence Mode:- to ask doubts and try to get it sorted then and there itself 
+ex)activate developer mode
+
+Fun Mode:- it is an environment for short break and refreshments
+Creates a break and entertainment environment.
+
+Workflow:
+Open Opera GX:
+Open YouTube:- if i want to see some yt video
+Open YouTube Music:- to listen to music
+Open Clock:- to set timer for break
+ex) activate fun mode
+
+Deep Mode:- to create an environment when mood is down and u just wanna reflect on ur thaughts
+and feelings so that u can come out stronger
+Creates an environment for writing, documentation, and reflection.
+
+Workflow:
+Open Chrome:- to search in or find out something which u were thinking to distract mind
+Open YouTube:- to watch something funny maybe to distract mind
+Open Notepad:- to write down thaughts and mood 
+Open Clock:- to give yourself time ur allowing utself to feel sad so that as soon as its done 
+u hit the ground running 
+ex) activate fun Mode
+
+-> Vision Mode
+vision mode focuses on controlling the desktop using hand. its still a feature which needs
+lot more work. currently using probutif base model 
+Vision Mode introduces computer vision capabilities.
+
+Features:
+
+Hand Tracking
+Cursor Control
+Gesture Recognition
+Mouse Interaction
+
+Smaran Vision Mode works through a real-time computer vision pipeline that maps your hand gestures to computer controls, boss:
+
+1. **Webcam Capture & Mirroring**: The pipeline captures video frames at 30 FPS and mirrors them horizontally so that moving your hand to the right naturally moves the cursor to the right.
+2. **Hand Tracking (MediaPipe)**: A custom [HandTracker] parses the video frames to track up to two hands simultaneously, identifying 21 key coordinate joints (landmarks) per hand.
+3. **Gesture Classifier**: The [GestureRecognizer] calculates the Euclidean distance between fingertips to classify gestures:
+   * **Single-Hand (Mouse Actions)**:
+     * *Cursor Tracking*: Index finger extended.
+     * *Left Click / Drag*: Thumb + Index finger touching.
+     * *Right Click*: Thumb + Index + Ring fingers touching.
+     * *Select (Zoom Lock)*: Thumb + Index + Middle fingers touching.
+   * **Two-Hand (System Actions)**:
+     * *Open Selected Item*: Spreading index fingers apart (requires Select first).
+     * *Close Active Window*: Bringing index fingers together to touch (requires Select first).
+   * **Exit**: Holding a closed fist for 2.0 seconds releases the camera and shuts down the mode.
+4. **Cursor Smoothing & Control**: The [CursorController] translates coordinates using PyAutoGUI. It applies speed-based Exponential Moving Average (EMA) smoothing (restricted to `MAX_ALPHA = 0.10`) to eliminate cursor jitter.
+5. **HUD Overlay**: An OpenCV overlay prints a real-time diagnostic panel (FPS, detected gestures, active state trackers, and control legends) directly onto your camera feed.
+
+Vision Mode runs independently from the assistant core and can be activated or disabled as needed.
+
+
+# Technology Stack
+
+Smaran is built as a multi-system desktop assistant that combines voice interaction, desktop automation, intelligence routing, and computer vision into a single ecosystem.
+
+Rather than relying on a single AI model, Smaran is composed of multiple specialized subsystems working together.
+
+---
+
+# System Architecture Stack
+
+```text
+Presentation Layer
+├── Chibi Panda Interface
+├── Animated Expressions
+├── Chat Interface
+└── Vision HUD Overlay
+
+Voice Layer
+├── Clap Detection
+├── Wake Phrase Detection
+├── Speech Recognition
+└── Text-to-Speech
+
+Automation Layer
+├── Application Launcher
+├── Browser Controller
+├── Workflow Modes
+└── Desktop Automation
+
+Intelligence Layer
+├── Confidence Router
+├── Weather Agent
+├── Dictionary Agent
+├── Wikipedia Agent
+├── News Agent
+└── Gemini Agent
+
+Vision Layer
+├── Webcam Processing
+├── Hand Tracking
+├── Gesture Recognition
+└── Cursor Controller
+```
+
+---
+
+# Programming Language
+
+### Python
+
+Python serves as the foundation of the entire project.
+
+Used for:
+
+* Voice processing
+* Desktop automation
+* Computer vision
+* API integrations
+* Routing logic
+* GUI handling
+* Workflow execution
+
+---
+
+# Voice Intelligence Stack
+
+The Voice Layer allows Smaran to wake up, listen, understand commands, and respond naturally.
+
+### Capabilities
+
+* Voice Wake Detection
+* Clap Wake Detection
+* Speech Recognition
+* Voice Responses
+* Passive Background Listening
+* Active Command Listening
+
+### Technologies
+
+* Groq API
+
+  * Model: `whisper-large-v3`
+  * Converts spoken audio into text.
+
+* pyttsx3
+
+  * Local text-to-speech engine.
+
+* speech_recognition
+
+  * Microphone recording and audio management.
+
+* pyaudio
+
+  * Low-level microphone access.
+
+* numpy
+
+  * Audio analysis and clap detection calculations.
+
+---
+
+# Weather Intelligence
+
+Provides weather-related information through a dedicated weather agent.
+
+### Capabilities
+
+* Current Temperature
+* Weather Summaries
+* Rain Probability
+* Sunrise Time
+* Sunset Time
+* Humidity
+* Wind Speed
+
+### Technologies
+
+* OpenWeatherMap API
+* requests
+
+---
+
+# Dictionary Intelligence
+
+Provides definitions and language support.
+
+### Capabilities
+
+* Word Definitions
+* Pronunciations
+* Meanings
+* Vocabulary Assistance
+
+### Technologies
+
+* Free Dictionary API
+* requests
+
+---
+
+# Research Intelligence
+
+Provides encyclopedic and informational content.
+
+### Capabilities
+
+* Topic Research
+* Historical Information
+* General Knowledge Queries
+* Biography Retrieval
+
+### Technologies
+
+* Wikipedia API
+* requests
+
+---
+
+# News Intelligence
+
+Provides access to recent events and current affairs.
+
+### Capabilities
+
+* Breaking News
+* Topic-Based News Search
+* Current Events
+* Headline Retrieval
+
+### Technologies
+
+* GNews API
+* requests
+
+---
+
+# Reasoning Intelligence
+
+Handles questions requiring reasoning, explanation, comparison, or general discussion.
+
+### Capabilities
+
+* Explanations
+* Comparisons
+* Decision Support
+* Summarization
+* Fallback Reasoning
+* Conversational Queries
+
+### Technologies
+
+* Google Gemini API
+* Model: `gemini-2.5-flash`
+* google-genai SDK
+
+---
+
+# Desktop Automation Stack
+
+The Automation Layer allows Smaran to interact with Windows applications and websites.
+
+### Capabilities
+
+* Open Applications
+* Open Websites
+* Browser Control
+* Music Playback
+* Search Automation
+* File Explorer Control
+* Notepad Automation
+* System Workflows
+
+### Technologies
+
+* pyautogui
+* subprocess
+* webbrowser
+* pywin32
+
+---
+
+# Workflow Modes
+
+Smaran contains environment-based workflow modes.
+
+### Study Mode
+
+Creates a focused study environment.
+
+Includes:
+
+* Clock
+* Study Music
+* Gemini
+* WhatsApp
+* File Explorer
+* Intelligence Mode
+
+### Developer Mode
+
+Creates a coding-focused environment.
+
+Includes:
+
+* VS Code
+* Terminal
+* Coding Music
+* Claude
+* Gemini
+* Intelligence Mode
+
+### Fun Mode
+
+Creates an entertainment environment.
+
+Includes:
+
+* Opera GX
+* YouTube
+* YouTube Music
+* Clock
+
+### Deep Mode
+
+Creates a reflection and writing environment.
+
+Includes:
+
+* Chrome
+* YouTube
+* Notepad
+* Clock
+
+---
+
+# Computer Vision Stack
+
+Vision Mode introduces touchless desktop control.
+
+### Capabilities
+
+* Hand Tracking
+* Cursor Movement
+* Gesture Recognition
+* Mouse Interaction
+* Application Control
+
+### Technologies
+
+* MediaPipe
+* OpenCV
+* PyAutoGUI
+
+---
+
+# Hand Tracking Pipeline
+
+Vision Mode processes webcam input through multiple stages.
+
+```text
+Webcam
+↓
+Frame Capture
+↓
+Hand Detection
+↓
+Landmark Extraction
+↓
+Gesture Recognition
+↓
+Cursor Control
+↓
+Desktop Interaction
+```
+
+### Components
+
+#### MediaPipe
+
+Detects up to 21 hand landmarks per hand.
+
+Used for:
+
+* Finger Position Detection
+* Hand Tracking
+* Gesture Analysis
+
+#### OpenCV
+
+Used for:
+
+* Webcam Feed Processing
+* Frame Rendering
+* Diagnostic HUD Overlay
+* Video Display
+
+#### PyAutoGUI
+
+Used for:
+
+* Cursor Movement
+* Mouse Clicks
+* Drag Operations
+* System Interaction
+
+---
+
+# Windows Integration Layer
+
+Smaran interacts directly with Windows.
+
+### Capabilities
+
+* Window Tracking
+* Window Management
+* Active Window Detection
+* Application Control
+* Volume Control
+
+### Technologies
+
+* pywin32
+
+  * win32gui
+  * win32con
+  * win32process
+  * win32com
+
+* comtypes
+
+---
+
+# Concurrency & System Control
+
+Several components run simultaneously.
+
+### Examples
+
+* Voice Listening
+* Clap Detection
+* Vision Mode
+* GUI Updates
+
+### Technologies
+
+* threading
+* queue
+* time
+
+---
+
+# Utility Libraries
+
+### requests
+
+Used for:
+
+* API communication
+* Weather requests
+* News requests
+* Dictionary requests
+* Research requests
+
+### Pillow (PIL)
+
+Used for:
+
+* Screen operations
+* Coordinate processing
+* Image handling
+
+### json
+
+Used for:
+
+* Configuration files
+* Runtime settings
+
+### re
+
+Used for:
+
+* Command parsing
+* Entity extraction
+* Pattern matching
+
+### socket
+
+Used for:
+
+* Internet connectivity checks
+
+### datetime
+
+Used for:
+
+* Date retrieval
+* Time retrieval
+* Scheduling support
+
+### os & sys
+
+Used for:
+
+* Environment variables
+* Path handling
+* Runtime operations
+
+---
+
+# Design Philosophy
+
+Smaran follows a Free-First Development Philosophy.
+
+Principles:
+
+* Use free APIs whenever possible.
+* Prefer local processing when practical.
+* Use specialized agents instead of a single model.
+* Separate automation from intelligence.
+* Build systems that remain useful even when one component fails.
+* Focus on workflow enhancement rather than chatbot-style interaction.
+
+The goal of Smaran is not to be a chatbot.
+
+The goal is to act as a voice-first desktop assistant that combines automation, intelligence, and computer vision into a unified system.
+=======
+
+SMARAN-Ai Assistant
+
+Smaran is a voice first desktop home automation assistant designed to do desktop,workflow and computer vision and act as assistant all in a system. smaran is a Sanskrit word which means "remembrance or memory"
+
+Smaran can be activated by either the voice input when it detects the word "wake up" or the hears a clap sound. it wakes up and a cute chibi panda comes up in front of the screen and has a small chat option just incase it cant hear the audio or interpret human voice. smaran has an animated face and has different expressions for different things. smaran's expressions
+
+smaran has a different expression while speaking. he has an expression where he seems to be speaking
+smaran  has a different expression while thinking. smaran keeps his hand near his head while thinking
+smaran has a different expression when listening to music or something in youtube. smaran wears headphone and shows a thumbs up symbol
+smaran cries if there is an error
+
+smaran can hear the audio using groq api as it enables smaran to hear the voice, initially smaran was built as an offline first assistant with whisperflow premium version but due to high latency we went to whisper base model as it has lesser latency but due to accuracy errors, we decided to go with online model where we used groq api for detecting the speaker voice and interpreting the voice and performing the actions.
+
+SMARAN ACTIVATION
+
+Smaran can be activated two ways:
+by voice detection -> when the user says "wake up smaran" if it detects the words "wake up" then it activates
+by clap detection -> if it detects the clap sound then it wakes up and gets activated
+when it wakes up a cute chibi panda whose name is smaran wakes up , he has two voice options.
+MALE VOICE :- Microsoft David (UNITED STATES OF AMERICA) |
+FEMALE VOICE :- Microsoft HAZEL(GREAT BRITAIN)
+These two are Default Text to speech voices present inside windows 11, I used them as they are free and easy to access,
+users get access to both the voices if they want male all they need to do is press on male voice and for female they have to press the female voice.
+
+How Smaran's Wake and Voice Detection System Works
+Smaran features a unified, hardware-resilient listening architecture that monitors both physical wake-ups (hand claps) and voice wake-ups (speech commands) simultaneously without locking the audio hardware.
+
+1. Real-time Audio Capture (BufferedMicSource)
+Smaran creates a custom wrapper subclassing the standard speech_recognition.Microphone.
+
+Shared Stream Proxy: Instead of opening separate streams (which causes Windows audio driver collisions), it captures a single native hardware stream.
+Dual Routing: It constantly feeds raw chunks into a thread-safe Queue for speech recognition, while maintaining a 0.5-second rolling audio buffer in memory for DSP (Digital Signal Processing) clap analysis.
+2. Clap Wake Detection (ClapClassifier)
+To identify a clap and separate it from background laptop fan hum, mouse clicks, or human speech, the system runs the 0.5s audio buffer through four mathematical filters:
+
+Rise Time (Attack): A clap is an impulsive sound. The classifier tracks the sound's onset; the amplitude must rise from background noise to its peak extremely quickly (under 50 milliseconds).
+Decay Ratio (Reverberation): Unlike sustained speech, a clap decays instantly. The system compares the peak energy to the energy 100ms–200ms later. If the ratio doesn't drop significantly (decay ratio <0.6), it is flagged as speech and ignored.
+Zero Crossing Rate (ZCR): High ZCR indicates sharp, high-frequency broadband noise. Laptop microphones often apply low-pass filters that suppress this high-frequency noise. We relaxed the threshold to 0.01 so that quiet hand claps are still captured.
+Signal-to-Noise Ratio (SNR): Instead of checking absolute volume, the classifier calculates the relative SNR (ratio of peak RMS to ambient background noise RMS). As long as the peak is at least 
+2× louder than the background room noise, the clap triggers, enabling low-volume claps to wake the system.
+
+3. Voice Wake Detection
+When Smaran is in standby, a background thread continuously passes the audio queue to SpeechRecognition utilizing a local faster-whisper model.
+It listens for specific wake phrases like "wake up" or "hey smaran".
+Repetition & Noise Guards: To prevent fan noise from causing loops, the system discards phrases where a single word occupies more than 
+70% of the audio energy, or single-word conversational fillers.
+
+4. Transition & Deadlock Prevention
+OS Driver Release Delay: When transitioning from calibration to background scanning, the system enforces a 1.0s sleep delay to allow the Windows driver (like Intel Smart Sound) to fully release the hardware device.
+Queue Flushing: Waking up requires stopping the background listener. To prevent thread lock deadlocks, Smaran injects a dummy silent chunk into the queue, immediately releasing the background thread so it can close PyAudio before the active listening loop begins.
+
+PHASE-I 
+PART-1
+ASSISTANT HANDLING TASK
+It can act as an assistant
+-> It can tell how it is when you ask "How are you?"-> responds saying its operating at peak efficiency
+-> when asked "who are you" -> it introduces itself as personal ai assistant
+-> when asked "who created you" -> it responds saying it was created by its owner name (XXX)
+-> when asked "say hello to everyone/friends/guests" -> it introduces itself
+
+-> when asked "give me a briefing" -> it
+greets the user
+tells date and time
+tells the weather
+battery of the laptop
+ex)give me a breifing
+-> when asked give me a quote then it goes through its general vault and finds a quote it has to 10 different quotes in general vault. it gives the quote along with the author name
+apart from that there are 13 different categories such as
+Courage
+Freedom
+Romance
+History
+Grit
+Confidence
+Love
+Self-improvement
+Time-management
+Health
+Spiritual health
+Mental health
+Motivation
+
+in total 13 Different categories each having 10 quotes so a total of 130 quotes present.
+now when someone specifies category and asks quote it chooses a quote from this vault randomly. this process is done using python dictionaries and values format.
+ex) give me a quote about confidence
+
+-> RANDOM NUMBER GENERATOR
+generates a random Number if it the variables 'a' and 'b' is specified.
+ex) generate a number between between 10 and 98
+
+->WEATHER SYSTEM
+tells the current temperature in the city
+ex) tell me the weather
+
+HOME AUTOMATION SYSTEM (Part-II)
+
+-> OPENING APPS
+it can open apps and Ai tools and websites
+
+Apps included are
+*ZenFlow -> zenflow is a vibecoded website which i had created by myself for tracking productivity. 
+zenflow works on the principal of implementation of different time-management tips into a single ecosystem.
+google has google tasks and google calendar but not lists
+microsoft calendar works inside microsoft office but not outside totally but doesnt have eisenhower matrix system
+eisenhower matrix is not something any big major corp has considered 
+
+so zenflow has 
+->tasks (points system , each task has points,positive and negative both)
+->lists 
+->eisenhower matrix
+-> journal 
+-> focus mode
+->pomodoro style timer (except u can only set the time)
+all combined and automated into a single ecosystem style 
+
+obviously i didnt launch but i am using it for my own purpose and created teh system, now i have given the link such that
+it opens the system as and when its called 
+
+*BROWSERS -> Chrome, Opera GX, Brave, Edge
+*Normal apps -> calculator , clock , Notepad , filexplorer, whatsapp
+*AI tools -> Gemini, chatgpt, grok, perplexity, claude
+btw for AI Tools obviously they need a browser hence any ai tool can open in any browser 
+we just have to be very specific with it. Chrome is the default browser 
+ai tool + browser name => automation 
+
+
+ex) open chrome , open gemini in brave browser
+
+-> SEARCH 
+we can search anything we want by using the keyword "search" before starting the sentence.
+specify the keyword and the topic and browser it will work by itself
+formulae -> 'keyword'+topic+browser => automation
+chrome is the global default browser in the entire context 
+ex)search Barcelona in edge browser 
+
+-> CALCULATIONS 
+It performs basic calculations which involve addition,subtraction,multiplication and division
+it requires the keyword "calculate"
+addition = add,plus
+subtraction = subtract,minus
+division = divide,by
+multiplication = multiply,into 
+formula = keyword + expression 
+it can also perform complex calculations involving decimals. it can also perform combined expression
+type questions as well
+Ex) calculate 120 plus 130 in calculator
+
+-> PLAYING MUSIC
+specify four things 
+*song_name,singer/movie,website,browser
+keyword = play
+song_name => name of the song 
+singer/movie => multiple songs can have the same name but different singer or diff movie
+website => where to play the song , youtube music or youtube. (youtube is the default search engine)
+browser => which browser to play music in. opera gx, edge, brave, Chrome. (again chrome is the default browser)
+formulae => play + song_name+singer/movie+website+browser
+smaran has headphone on his ears and thumbs up when playing music 
+if you dont know song just say singer name or movie name , the top search will be played first
+ex) play faded by alan walker in youtube music in brave browser
+
+-> PLAYING PODCAST Or YOUTUBE VIDEO
+pretty much same thing just mention youtube video name and channel name , no need website as it is youtube 
+itself and obviously browser name 
+if you dont know any video name just say the channel name any video related to that channel will open up 
+or the channel will be tagged type will show 
+most times it will play latest video from that channel itself
+formulae -> play + specific_video_title+channel_name+browser 
+ex)play raj shamani in youtube in msedge browser
+
+->Notepad
+keyline = open notepad and type
+saying the keyline along with the certain message will help in making sure notepad is opened and the 
+message starts being typed down there. 
+ex)openn notepad and type i am smaran i am the greatest ai assistant created in human history 
+
+-> QUIET MODE 
+QUIET MODE is an environment where the mic is suspended hence smaran cannot listen any of the 
+queries of the user. this was done because sometimes user is speaking to something or listening to 
+something on the phone but smaran interprets as a request to him so smaran used to get activated.
+to resume smaran'soperation u have to type the word "RESUME" , smaran gets activated.
+ex) activate QUIET/quiet mode smaran
+
+
+PHASE-II 
+smaran can perform agentic tasks but it doesnt have a brain sort of a thing which makes it 
+more like an ai agent so i am building an internal small room where 5 different api's are present 
+and when a task is given a router system is used to find out which task belongs to which api 
+such that the task can be traced to their respective api's properly
+
+to activate intelligence layer first we have to tell "activate intelligence mode"
+when the pattern detects the intelligence mode it opens the intelligence layer where all the 
+agents are present. the tradeback is now the automation layer tasks(phase-I) cannot be performed
+Hence for that to happen u have to come out of intelligence layer by saying "lock intelligence mode" or
+"exit intelligence mode"
+
+Intelligence Layer
+
+Smaran uses a confidence-based routing system to determine the best agent for each query.
+
+this is the routing architecture 
+Routing Architecture
+User Query:- user input message which is spoken with smaran
+↓
+Weighted Scoring:-the message is converted to text and keywords are searched,each agent obviously has 
+certain keywords and if they are found points are alloted using python dictionaries 
+↓
+Confidence Evaluation:- now the agent which has highest keywords is subtracted with the agent which has 
+the second highest keywords, if the gap is high the highest keyword agent wins but if gap is low 
+then it falls back to groq api. groq api will go through sentence and decide who this task is going to 
+be assigned to 
+↓
+Best Agent Selection:- based on the task the best agent among the five agents are going to be selected
+↓
+Response Generation:- the input given by the user the agent sees through it and finds out the best output 
+and gives it back to the user in the form of text 
+↓
+Voice Output:- the same text is then converted to speech and responded by smaran 
+
+entire process takes nearly 10-15 seconds at max depending on the internet speed,input given.
+ex)define library
+
+AGENTS PRESENT INSIDE INTELLIGENCE Layer
+
+Supported Agents
+OPEN-METEO(weather agent):- OPEN-METEO is an weathering api which acts as the weather agent in project
+smaran. unlike before if u ask whats the weather it would give u only the weather but now if u ask 
+weather it gives u more than just that
+
+Provides:
+weather summary :- gives me the weather summary which includes current temperatur,mx_temp,min_temp,rain Probability
+sunrise time and sunset time 
+Current Temperature:- temperature of the city 
+Rain Probability:- rain chances in the city u mentioned
+Sunrise Time:- sunrise time in the city u mentioned
+Sunset Time:- sunset time in the city u mentioned 
+humidity :- 
+windspeed :-
+ex) give me the weather summary of bengaluru
+
+
+Dictionary Agent: the dictionary agent uses the dictionary_api to find out the meaning of a particoular word
+it tells how it is pronounced , gives the meaning of the word as well as its pronounciation
+
+Handles:
+Define
+Meaning
+Mean
+Give me the meaning of
+ex)give me the meaning of lantern
+
+Wikimedia(wikipedia Agent) : wikipedia agent uses wikimedia  api to go to wikipedia and find data
+and gives me the data from the wikipedia. finds information about certain topics 
+
+Handles:
+Research
+Tell me about
+History of
+Who is
+What is
+ex) tell me about reliance industries 
+
+GNEWS(News Agent):- newsagent is basically supposed to give me realtime news updates 
+Provides:
+
+Current news
+Recent events
+Topic-based news searches
+ex) give me the current or latest news about prime minister narendra modi 
+
+
+Gemini Agent:-uses gemini flash 2.5 model for reasoning , it also acts as the fallback api 
+as well 
+
+Used for:
+Reasoning
+Comparisons
+Explanations
+Decision Support
+General Intelligence Queries
+ex)why is earth 
+
+-> System Modes
+
+
+Study Mode:- study mode is an environment where all distratcing app are closed so that user can only
+spend his time focusing on studies.
+Creates a distraction-free study environment.
+
+Workflow:
+
+Close non-essential applications:- close Distracting apps 
+Open Clock:-opens clock so that u can setup a timer for how much time u would wanna study 
+Open YouTube and plays Study Music:- to set up an environment for studying 
+Open Gemini:- if u have doubta to search in gemini as it acts as ur study buddy 
+Open WhatsApp:- to find files notes and pdfs to study
+Open File Explorer:- certain files are stored here in folder or just like that for studying
+Activate Intelligence Mode:- which you aldready know (intelligence layer)
+ex) activate study mode 
+
+
+Developer Mode
+developer mode is for building an environment where when i am probably only doing coding or learning 
+about ai or career related stuff and all that 
+Creates a coding-focused environment.
+
+Workflow:
+
+Preserve VS Code:- vs code which is aldready active will be awake
+Preserve Terminal:- same way as vs code
+Open VS Code:- just incase if they arent active 
+Open Clock:- to setup a timer to decide how long i would want to study 
+Open YouTube Coding Music:- plays coding type ai music just to setup the env
+Open Claude:- to generate code or undertsand code or content or topics how they work
+Open Gemini:- gemini for doing the same thing as claude
+Activate Intelligence Mode:- to ask doubts and try to get it sorted then and there itself 
+ex)activate developer mode
+
+Fun Mode:- it is an environment for short break and refreshments
+Creates a break and entertainment environment.
+
+Workflow:
+Open Opera GX:
+Open YouTube:- if i want to see some yt video
+Open YouTube Music:- to listen to music
+Open Clock:- to set timer for break
+ex) activate fun mode
+
+Deep Mode:- to create an environment when mood is down and u just wanna reflect on ur thaughts
+and feelings so that u can come out stronger
+Creates an environment for writing, documentation, and reflection.
+
+Workflow:
+Open Chrome:- to search in or find out something which u were thinking to distract mind
+Open YouTube:- to watch something funny maybe to distract mind
+Open Notepad:- to write down thaughts and mood 
+Open Clock:- to give yourself time ur allowing utself to feel sad so that as soon as its done 
+u hit the ground running 
+ex) activate fun Mode
+
+-> Vision Mode
+vision mode focuses on controlling the desktop using hand. its still a feature which needs
+lot more work. currently using probutif base model 
+Vision Mode introduces computer vision capabilities.
+
+Features:
+
+Hand Tracking
+Cursor Control
+Gesture Recognition
+Mouse Interaction
+
+Smaran Vision Mode works through a real-time computer vision pipeline that maps your hand gestures to computer controls, boss:
+
+1. **Webcam Capture & Mirroring**: The pipeline captures video frames at 30 FPS and mirrors them horizontally so that moving your hand to the right naturally moves the cursor to the right.
+2. **Hand Tracking (MediaPipe)**: A custom [HandTracker] parses the video frames to track up to two hands simultaneously, identifying 21 key coordinate joints (landmarks) per hand.
+3. **Gesture Classifier**: The [GestureRecognizer] calculates the Euclidean distance between fingertips to classify gestures:
+   * **Single-Hand (Mouse Actions)**:
+     * *Cursor Tracking*: Index finger extended.
+     * *Left Click / Drag*: Thumb + Index finger touching.
+     * *Right Click*: Thumb + Index + Ring fingers touching.
+     * *Select (Zoom Lock)*: Thumb + Index + Middle fingers touching.
+   * **Two-Hand (System Actions)**:
+     * *Open Selected Item*: Spreading index fingers apart (requires Select first).
+     * *Close Active Window*: Bringing index fingers together to touch (requires Select first).
+   * **Exit**: Holding a closed fist for 2.0 seconds releases the camera and shuts down the mode.
+4. **Cursor Smoothing & Control**: The [CursorController] translates coordinates using PyAutoGUI. It applies speed-based Exponential Moving Average (EMA) smoothing (restricted to `MAX_ALPHA = 0.10`) to eliminate cursor jitter.
+5. **HUD Overlay**: An OpenCV overlay prints a real-time diagnostic panel (FPS, detected gestures, active state trackers, and control legends) directly onto your camera feed.
+
+Vision Mode runs independently from the assistant core and can be activated or disabled as needed.
+
+
+# Technology Stack
+
+Smaran is built as a multi-system desktop assistant that combines voice interaction, desktop automation, intelligence routing, and computer vision into a single ecosystem.
+
+Rather than relying on a single AI model, Smaran is composed of multiple specialized subsystems working together.
+
+---
+
+# System Architecture Stack
+
+```text
+Presentation Layer
+├── Chibi Panda Interface
+├── Animated Expressions
+├── Chat Interface
+└── Vision HUD Overlay
+
+Voice Layer
+├── Clap Detection
+├── Wake Phrase Detection
+├── Speech Recognition
+└── Text-to-Speech
+
+Automation Layer
+├── Application Launcher
+├── Browser Controller
+├── Workflow Modes
+└── Desktop Automation
+
+Intelligence Layer
+├── Confidence Router
+├── Weather Agent
+├── Dictionary Agent
+├── Wikipedia Agent
+├── News Agent
+└── Gemini Agent
+
+Vision Layer
+├── Webcam Processing
+├── Hand Tracking
+├── Gesture Recognition
+└── Cursor Controller
+```
+
+---
+
+# Programming Language
+
+### Python
+
+Python serves as the foundation of the entire project.
+
+Used for:
+
+* Voice processing
+* Desktop automation
+* Computer vision
+* API integrations
+* Routing logic
+* GUI handling
+* Workflow execution
+
+---
+
+# Voice Intelligence Stack
+
+The Voice Layer allows Smaran to wake up, listen, understand commands, and respond naturally.
+
+### Capabilities
+
+* Voice Wake Detection
+* Clap Wake Detection
+* Speech Recognition
+* Voice Responses
+* Passive Background Listening
+* Active Command Listening
+
+### Technologies
+
+* Groq API
+
+  * Model: `whisper-large-v3`
+  * Converts spoken audio into text.
+
+* pyttsx3
+
+  * Local text-to-speech engine.
+
+* speech_recognition
+
+  * Microphone recording and audio management.
+
+* pyaudio
+
+  * Low-level microphone access.
+
+* numpy
+
+  * Audio analysis and clap detection calculations.
+
+---
+
+# Weather Intelligence
+
+Provides weather-related information through a dedicated weather agent.
+
+### Capabilities
+
+* Current Temperature
+* Weather Summaries
+* Rain Probability
+* Sunrise Time
+* Sunset Time
+* Humidity
+* Wind Speed
+
+### Technologies
+
+* OpenWeatherMap API
+* requests
+
+---
+
+# Dictionary Intelligence
+
+Provides definitions and language support.
+
+### Capabilities
+
+* Word Definitions
+* Pronunciations
+* Meanings
+* Vocabulary Assistance
+
+### Technologies
+
+* Free Dictionary API
+* requests
+
+---
+
+# Research Intelligence
+
+Provides encyclopedic and informational content.
+
+### Capabilities
+
+* Topic Research
+* Historical Information
+* General Knowledge Queries
+* Biography Retrieval
+
+### Technologies
+
+* Wikipedia API
+* requests
+
+---
+
+# News Intelligence
+
+Provides access to recent events and current affairs.
+
+### Capabilities
+
+* Breaking News
+* Topic-Based News Search
+* Current Events
+* Headline Retrieval
+
+### Technologies
+
+* GNews API
+* requests
+
+---
+
+# Reasoning Intelligence
+
+Handles questions requiring reasoning, explanation, comparison, or general discussion.
+
+### Capabilities
+
+* Explanations
+* Comparisons
+* Decision Support
+* Summarization
+* Fallback Reasoning
+* Conversational Queries
+
+### Technologies
+
+* Google Gemini API
+* Model: `gemini-2.5-flash`
+* google-genai SDK
+
+---
+
+# Desktop Automation Stack
+
+The Automation Layer allows Smaran to interact with Windows applications and websites.
+
+### Capabilities
+
+* Open Applications
+* Open Websites
+* Browser Control
+* Music Playback
+* Search Automation
+* File Explorer Control
+* Notepad Automation
+* System Workflows
+
+### Technologies
+
+* pyautogui
+* subprocess
+* webbrowser
+* pywin32
+
+---
+
+# Workflow Modes
+
+Smaran contains environment-based workflow modes.
+
+### Study Mode
+
+Creates a focused study environment.
+
+Includes:
+
+* Clock
+* Study Music
+* Gemini
+* WhatsApp
+* File Explorer
+* Intelligence Mode
+
+### Developer Mode
+
+Creates a coding-focused environment.
+
+Includes:
+
+* VS Code
+* Terminal
+* Coding Music
+* Claude
+* Gemini
+* Intelligence Mode
+
+### Fun Mode
+
+Creates an entertainment environment.
+
+Includes:
+
+* Opera GX
+* YouTube
+* YouTube Music
+* Clock
+
+### Deep Mode
+
+Creates a reflection and writing environment.
+
+Includes:
+
+* Chrome
+* YouTube
+* Notepad
+* Clock
+
+---
+
+# Computer Vision Stack
+
+Vision Mode introduces touchless desktop control.
+
+### Capabilities
+
+* Hand Tracking
+* Cursor Movement
+* Gesture Recognition
+* Mouse Interaction
+* Application Control
+
+### Technologies
+
+* MediaPipe
+* OpenCV
+* PyAutoGUI
+
+---
+
+# Hand Tracking Pipeline
+
+Vision Mode processes webcam input through multiple stages.
+
+```text
+Webcam
+↓
+Frame Capture
+↓
+Hand Detection
+↓
+Landmark Extraction
+↓
+Gesture Recognition
+↓
+Cursor Control
+↓
+Desktop Interaction
+```
+
+### Components
+
+#### MediaPipe
+
+Detects up to 21 hand landmarks per hand.
+
+Used for:
+
+* Finger Position Detection
+* Hand Tracking
+* Gesture Analysis
+
+#### OpenCV
+
+Used for:
+
+* Webcam Feed Processing
+* Frame Rendering
+* Diagnostic HUD Overlay
+* Video Display
+
+#### PyAutoGUI
+
+Used for:
+
+* Cursor Movement
+* Mouse Clicks
+* Drag Operations
+* System Interaction
+
+---
+
+# Windows Integration Layer
+
+Smaran interacts directly with Windows.
+
+### Capabilities
+
+* Window Tracking
+* Window Management
+* Active Window Detection
+* Application Control
+* Volume Control
+
+### Technologies
+
+* pywin32
+
+  * win32gui
+  * win32con
+  * win32process
+  * win32com
+
+* comtypes
+
+---
+
+# Concurrency & System Control
+
+Several components run simultaneously.
+
+### Examples
+
+* Voice Listening
+* Clap Detection
+* Vision Mode
+* GUI Updates
+
+### Technologies
+
+* threading
+* queue
+* time
+
+---
+
+# Utility Libraries
+
+### requests
+
+Used for:
+
+* API communication
+* Weather requests
+* News requests
+* Dictionary requests
+* Research requests
+
+### Pillow (PIL)
+
+Used for:
+
+* Screen operations
+* Coordinate processing
+* Image handling
+
+### json
+
+Used for:
+
+* Configuration files
+* Runtime settings
+
+### re
+
+Used for:
+
+* Command parsing
+* Entity extraction
+* Pattern matching
+
+### socket
+
+Used for:
+
+* Internet connectivity checks
+
+### datetime
+
+Used for:
+
+* Date retrieval
+* Time retrieval
+* Scheduling support
+
+### os & sys
+
+Used for:
+
+* Environment variables
+* Path handling
+* Runtime operations
+
+---
+
+# Design Philosophy
+
+Smaran follows a Free-First Development Philosophy.
+
+Principles:
+
+* Use free APIs whenever possible.
+* Prefer local processing when practical.
+* Use specialized agents instead of a single model.
+* Separate automation from intelligence.
+* Build systems that remain useful even when one component fails.
+* Focus on workflow enhancement rather than chatbot-style interaction.
+
+The goal of Smaran is not to be a chatbot.
+
+The goal is to act as a voice-first desktop assistant that combines automation, intelligence, and computer vision into a unified system.
+>>>>>>> dc150bf151d566819a942c2ad22c278a1fc20abf
