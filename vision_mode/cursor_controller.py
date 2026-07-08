@@ -30,7 +30,7 @@ pyautogui.FAILSAFE = True
 
 class CursorController:
     # Normalized active zone boundaries
-    ZONE_L = 0.25;  ZONE_R = 0.75
+    ZONE_L = 0.25;  ZONE_R = 0.75 
     ZONE_T = 0.30;  ZONE_B = 0.70
 
     # Smoothing parameters — optimized for 60 FPS real-time tracking with high jitter suppression
@@ -38,7 +38,7 @@ class CursorController:
     MAX_ALPHA       = 0.080   # increased max alpha for fast, real-time responsive tracking
     SPEED_THRESHOLD = 0.04    # lower speed threshold to transition to fast tracking sooner
 
-    CLICK_COOLDOWN  = 0.50    # seconds between click actions
+    CLICK_COOLDOWN  = 0.20    # seconds between click actions
 
     def __init__(self):
         self._sw, self._sh = pyautogui.size()
