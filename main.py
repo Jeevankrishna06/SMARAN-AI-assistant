@@ -152,8 +152,8 @@ class SmaranCore:
 
         def on_clap():
             print("\n[WAKE]")
-            print("Clap detected.")
-            print("Smaran awakened.")
+            print("Sound detected.")
+            print("Smaran is Activated.")
             self.wake_triggered = True
             
             def stop_and_wake():
@@ -162,28 +162,28 @@ class SmaranCore:
                 if self.gui:
                     self.gui.root.after(0, self.initialize_assistant)
                 else:
-                    threading.Thread(target=self.initialize_assistant, daemon=True).start()
+                    threading.Thread(target=self.initialize_assistant, daemon=True).start()#daemon=True means that the thread will run in the background and will not prevent the program from exiting if the main thread finishes execution. This is useful for tasks that should run independently without blocking the main program flow.
 
-            threading.Thread(target=stop_and_wake, daemon=True).start()
+            threading.Thread(target=stop_and_wake, daemon=True).start()#this is useful for tasks which req uire background processing
 
         try:
-            radar_mic = clap_detector.BufferedMicSource(
-                on_clap_callback=on_clap,
-                check_active_callback=lambda: getattr(self, 'wake_triggered', False),
-                device_index=self.mic.device_index if self.mic else None
+            radar_mic = clap_detector.BufferedMicSource (
+                on_clap_callback = on_clap ,
+                check_active_callback=lambda: getattr(self, 'sound_detected', False),
+                device_index=self.mic.device_index if self.mic is not None else None
             )
             self.radar_mic = radar_mic
             # Revert to standard phrase threshold since claps are handled by our proxy
-            self.recognizer.phrase_threshold = 0.3
+            self.recognizer.phrase_threshold = 0.5
             self.stop_listening_fn = self.recognizer.listen_in_background(
                 radar_mic,
                 self.wake_word_callback,
-                phrase_time_limit=4
+                phrase_time_limit = 2         
             )
-            print("🎤 [RADAR ACTIVE] Background acoustic scanning array active.")
+            print("Scanning for any background sounds.....") 
             
         except Exception as e:
-            print(f"⚠️ [RADAR ERROR] Could not start background wake listener: {e}") 
+            print(f"Radar Error: {e} ") 
             if self.gui:
                 self.state_manager.set_state("idle", "Text entry ready")  # Fallback to text entry if mic fails
 
