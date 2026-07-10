@@ -89,15 +89,15 @@ class SmaranCore:
         self.recognizer.dynamic_energy_threshold = False  # Keep threshold fixed — dynamic mode lets fan noise raise it and deafen the mic
         self.recognizer.pause_threshold = 2.0    # Wait 2s of silence before ending a phrase — gives user time to pause between words
         self.recognizer.phrase_threshold = 0.02   # Extremely low so short impulsive claps are not discarded by the engine
-        self.recognizer.non_speaking_duration = 0.02  # Short pre-phrase buffer
+        self.recognizer.non_speaking_duration = 0.08  # Short pre-phrase buffer
         try:
             self.mic = sr.Microphone()
         except Exception as e:
             print(f"microphone seems unavailable: {e}")
             self.mic = None
             
-        self.gui = None 
-        self.wake_triggered = False
+        self.gui = None #because GUI is launched on main thread, we initialize it here but it will be set in launch_visual_console()
+        self.wake_triggered = False #what happens when it is set to true is that the passive radar will stop and the active listening will start
         self.stop_listening_fn = None
         self._mic_lock = threading.Lock()  # Prevents two listeners from opening the mic simultaneously
         
@@ -105,24 +105,24 @@ class SmaranCore:
         self.launch_visual_console()
 
     def stop_passive_radar_cleanly(self):
-        """Stops the passive background wake listener and waits for mic release"""
-        fn = self.stop_listening_fn
+        """Stops the passive background wake listener and waits for mic release""" #it performs a clean shutdown of the passive radar listener, ensuring that the microphone is released and any background threads are properly terminated.
+        fn = self.stop_listening_fn 
         if fn is not None:
             self.stop_listening_fn = None
             print("🔇 [RADAR DEACTIVATED] Stopping passive radar listener...", flush=True)
             try:
                 # Put a chunk of silence to unblock listener thread from queue.get()
                 if hasattr(self, 'radar_mic') and self.radar_mic:
-                    self.radar_mic.audio_queue.put(b'\x00' * (self.radar_mic.CHUNK * 2)) #for stopping it 
+                    self.radar_mic.audio_queue.put(b'\x00' * (self.radar_mic.CHUNK * 2)) #what it does is that it puts a chunk of silence into the audio queue to unblock the listener thread from waiting indefinitely on audio input. This allows the background listener to exit cleanly.
                 fn(wait_for_stop=True)
-                print("✅ [RADAR DEACTIVATED] Passive radar listener fully stopped.", flush=True)
+                print("✅ [RADAR DEACTIVATED] Passive radar listener fully stopped.", flush=True) # what it does is that it prints a confirmation message indicating that the passive radar listener has been successfully stopped and the microphone is now released for other uses.
             except Exception as e:
                 print(f"[RADAR STOP WARNING] {e}", flush=True)
 
     def stable_passive_radar(self):
         """STATE 1: Listens in background continuously until wake word hits"""
         if not self.mic:
-            print("❌ No microphone available. Exiting passive radar.")
+            print("❌ microphone is  unavailable. Exiting passive radar.")
             return
 
         # Wait for Whisper model to finish loading before calibrating/listening
@@ -134,19 +134,19 @@ class SmaranCore:
         if self.gui:
             self.state_manager.set_state("idle", "Standby")
 
-        print("🎧 [RADAR CALIBRATION] for checking any ambient sounds.") 
+        print("🎧 [RADAR CALIBRATION] for checking any ambient sounds from the environment.") #this prints because 
         try:
             # Use a fresh mic instance for calibration only — separate from the one used for listening
             calib_mic = sr.Microphone()
             with calib_mic as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=1.0)
+                self.recognizer.adjust_for_ambient_noise(source, duration=1.25)
         except Exception as e:
-            print(f"⚠️ [RADAR CALIBRATION WARNING] {e}")
+            print(f"⚠️ RADAR Error: {e}")
 
         # Let the OS fully release the audio device from calibration before entering radar_mic
-        time.sleep(1.0)
+        time.sleep(1.25)
 
-        print("✅ [SYSTEM READY] Smaran is waiting for your order!")
+        print(" Smaran is waiting for your order boss/mam!")
         if self.gui:
             self.state_manager.set_state("idle", "Say 'Wake up'")
 
