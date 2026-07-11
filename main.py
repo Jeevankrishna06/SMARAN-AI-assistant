@@ -185,7 +185,7 @@ class SmaranCore:
         except Exception as e:
             print(f"Radar Error: {e} ") 
             if self.gui:
-                self.state_manager.set_state("idle", "Text entry ready")  # Fallback to text entry if mic fails
+                self.state_manager.set_state("idle", "Enter the text")  # Fallback to text entry if mic fails
 
         # Keep thread alive until wake word is triggered
         while not self.wake_triggered:
@@ -209,7 +209,7 @@ class SmaranCore:
             
         try:
             spoken_text = self.transcriber.transcribe(audio, mode="fast").lower()
-            print(f"👂 [RADAR HEARD] Detected audio: '{spoken_text}'")
+            print(f"Certain voice detected: '{spoken_text}'")
             
             # Flexible phonetic wake-word matching to handle model/mic variations
             name_matches = ["smaran", "samaran", "sumran", "smoran", "simran", "some run","smurren","smurrel","smarren", "somrun"]
@@ -221,10 +221,10 @@ class SmaranCore:
             is_prefixed_wake = has_prefix and any(w in spoken_text for w in prefix_matches)
             
             # Check for wake up phrases
-            is_wake_up = any(w in spoken_text for w in ["wake up", "wakeup", "way cup", "lake up", "make up", "weicup"])
+            is_wake_up = any(w in spoken_text for w in ["wake up", "wakeup", "way cup", "lake up", "make up", "weicup", "wakeupp"])
             
             if is_wake_name or is_prefixed_wake or is_wake_up:
-                print("⚡ [WAKE INITIALIZED] Wake word detected!")
+                print("Wake word detected. Activating Smaran...")
                 self.wake_triggered = True
                 
                 # Stop the background wake listener cleanly and wait for release
@@ -236,7 +236,7 @@ class SmaranCore:
                 if self.gui and not self.wake_triggered:
                     self.state_manager.set_state("idle", "Say 'Wake up'")
         except Exception as e:
-            print(f"⚠️ [RADAR TRANSCRIBE WARNING] {e}")
+            print(f"⚠️ [RADAR TRANSCRIBE WARNING] {e}") #checking for any errors in the wake word detection process
             if self.gui and not self.wake_triggered:
                 self.state_manager.set_state("idle", "Say 'Wake up'")
 
@@ -249,17 +249,17 @@ class SmaranCore:
         self.handle_voice_change()
         
         # Set initial GUI state to idle showing "Initializing..."
-        self.state_manager.set_state("idle", "Initializing...")
+        self.state_manager.set_state("idle", "Initializing Smaran...")
         
         # Start the passive background wake loop in a thread
         threading.Thread(target=self.stable_passive_radar, daemon=True).start()
-        
+
         self.gui.run()
 
     def initialize_assistant(self):
         """Plays greeting and arms microphone sequentially"""
         if self.gui:
-            self.state_manager.set_state("idle", "Activating...")
+            self.state_manager.set_state("idle", "Activating Smaran...")
 
         # Prioritize a quick, highly recognizable wake-up audio and store the resolved path
         self.wake_wav_path = r"C:\Windows\Media\Windows Unlock.wav"
@@ -275,7 +275,7 @@ class SmaranCore:
             import winsound
             winsound.PlaySound(self.wake_wav_path, winsound.SND_FILENAME)
         except Exception as e:
-            print(f"[WAKE AUDIO ERROR] {e}")
+            print(f"Error in intro audio: {e}")
             
         greeting = "I have been activated, boss. ready to serve you."
         self.speak(greeting, "Speaking greeting...")
@@ -314,7 +314,7 @@ class SmaranCore:
         # Word-sequence match: all target words appear consecutively in spoken
         sw = spoken.split()
         tw = target.split()
-        for i in range(len(sw) - len(tw) + 1): #
+        for i in range(len(sw) - len(tw) + 1): #because it checks for all possible starting positions in the spoken words list where the target words could fit
             if sw[i:i + len(tw)] == tw:
                 return True
         # Fuzzy ratio fallback for Whisper transcription errors
@@ -367,7 +367,7 @@ class SmaranCore:
             for phrase in ACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
                     return "activate"
-        elif first_word in DEACTIVATE_PREFIXES:
+        elif first_word in DEACTIVATE_PREFIXES :
             for phrase in DEACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
                     return "deactivate"
@@ -412,9 +412,7 @@ class SmaranCore:
             words.pop()
             
         cleaned = " ".join(words).strip() #cleans up any extra spaces after popping fillers
-        # Remove any trailing question marks or punctuation
-        cleaned = re.sub(r'^[^\w]+|[^\w]+$', '', cleaned)
-        return cleaned.strip()
+        return cleaned
 
     def _analyze_intent(self, user_input: str) -> tuple[str, float]:
         """
@@ -428,7 +426,9 @@ class SmaranCore:
         # 1. Mode Activation Check
         mode_triggers = {
             "study mode", "developer mode", "fun mode", "deep mode", "dev mode",
-            "activate vision", "start vision", "vision mode", "enable vision",
+            "activate study mode", "activate dev mode", "activate developer mode", "activate deep mode",
+            "activate fun mode", "start study mode", "start dev mode", "start developer mode", "start deep mode",
+            "start fun mode","activate vision", "start vision", "vision mode", "enable vision",
             "lock vision", "disable vision", "stop vision", "close vision"
         }
         if any(trigger in text for trigger in mode_triggers):
@@ -443,9 +443,9 @@ class SmaranCore:
             "notepad", "calculator", "calc", "cmd", "explorer", "task manager"
         }
         is_open_cmd = (text.startswith("open ") or text.startswith("launch "))
-        if is_open_cmd or any(t in text_words for t in sys_triggers) or "set timer" in text or "countdown" in text:
+        if is_open_cmd or any(t in text_words for t in sys_triggers) or "set timer" in text or "countdown" in text or "give me a quote" in text:
             if not any(w in text for w in ["wikipedia", "wiki", "weather", "news", "define", "definition", "meaning"]):
-                intent, confidence = "System Command", 0.9
+                intent, confidence = "System Command", 0.9 
                 print(f"[INTEL]\nIntent: {intent}\nConfidence: {confidence}\n")
                 return intent, confidence
 
