@@ -438,8 +438,8 @@ class SmaranCore:
 
         # 2. System Command Check
         sys_triggers = {
-            "volume", "mute", "shutdown", "stop", "exit", "bye", "goodbye", "sleep", "goodnight",
-            "timer", "clock", "countdown", "calculate", "compute", "solve", "type", "write",
+            "brave","chrome","opera","opera gx", "shutdown", "stop", "exit", "bye", "goodbye", 
+            "sleep", "goodnight", "timer", "clock", "countdown", "calculate", "compute", "solve", "type", "write",
             "notepad", "calculator", "calc", "cmd", "explorer", "task manager"
         }
         is_open_cmd = (text.startswith("open ") or text.startswith("launch "))

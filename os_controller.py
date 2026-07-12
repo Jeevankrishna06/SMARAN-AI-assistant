@@ -539,19 +539,8 @@ class OSController:
                 
             elif setting == "mute":
                 pyautogui.press("volumemute")
-                return True, "Toggled system mute."
-                
-            elif setting == "get_volume":
-                try:
-                    from pycaw.pycaw import AudioUtilities
-                    speakers = AudioUtilities.GetSpeakers()
-                    volume = speakers.EndpointVolume
-                    current_val = int(round(volume.GetMasterVolumeLevelScalar() * 100))
-                    return True, f"Your system volume is currently at {current_val} percent, boss."
-                except Exception as ex:
-                    print(f"pycaw volume retrieve failed: {ex}")
-                    return True, "I am unable to retrieve the exact volume level right now, boss, but you can adjust it using my volume up and down controls."
-                
+                return True, "Toggled system mute." 
+                          
             else:
                 return False, f"System control setting '{setting}' not mapped yet."
                 

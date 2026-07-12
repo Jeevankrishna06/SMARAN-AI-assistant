@@ -1044,14 +1044,14 @@ class SmaranBrain:
                     }
 
         # Case 4: VOLUME / SYSTEM CONTROLS
-        if "volume up" in text or "increase volume" in text:
+        if "volume up" in text or "increase volume" in text or "volume by" in text or "increase my volume" in text or "increase the volume" in text:
             return {
                 "action": "system_control",
                 "target": "volume_up",
                 "parameter": "none",
                 "spoken_response": "Increasing volume, boss."
             }
-        elif "volume down" in text or "decrease volume" in text:
+        elif "volume down" in text or "decrease volume" in text or "decrease my volume" in text or "decrease the volume" in text:
             return {
                 "action": "system_control",
                 "target": "volume_down",
