@@ -9,8 +9,8 @@ import speech_recognition as sr
 # CLAP CONFIGURATION 
 # Adjust these values to tune sensitivity
 # ==========================================
-CLAP_MIN_SNR = 2.0             # Peak must be at least 2x louder than background noise (relaxed for quiet claps)
-CLAP_MIN_PEAK_AMP = 40         # Minimum peak amplitude to process (extremely low for minimal claps)
+CLAP_MIN_SNR = 4.0             # Peak must be at least 6x louder than background noise
+CLAP_MIN_PEAK_AMP = 1200       # Minimum peak amplitude to process (prevents low-level spikes/noise false triggers)
 CLAP_COOLDOWN = 2.0            # Ignore additional claps for X seconds after a wake
 CLAP_MAX_RISE_TIME_MS = 50.0   # A clap rises extremely quickly
 CLAP_MAX_DECAY_RATIO = 0.6     # Energy must decay rapidly
@@ -39,8 +39,16 @@ class ClapClassifier:
             return False, {}
             
         # Calculate Background Noise (RMS of the first 50ms of the buffer, far from peak)
-        bg_window = audio_array[:self._ms_to_samples(50)].astype(np.float32)
-        bg_rms = np.sqrt(np.mean(bg_window**2)) + 1e-6
+        # Avoid using the first 50ms if the peak itself is located within the first 120ms of the buffer.
+        bg_start = 0
+        bg_end = self._ms_to_samples(50)
+        if peak_idx < self._ms_to_samples(120):
+            # Shift background window to the end of the buffer (last 50ms) where it is quiet
+            bg_start = len(audio_array) - self._ms_to_samples(50)
+            bg_end = len(audio_array)
+            
+        bg_window = audio_array[bg_start:bg_end].astype(np.float32)
+        bg_rms = np.sqrt(np.mean(bg_window**2)) + 5.0  # Add absolute noise floor constant to prevent division-by-zero SNR spikes
         
         # Peak RMS (+/- 3ms)
         peak_window_size = self._ms_to_samples(3)
@@ -177,14 +185,19 @@ class BufferedMicSource(sr.Microphone):
                 startup_elapsed = time.time() - getattr(self, 'start_time', time.time())
                 
                 if not is_active and startup_elapsed > 1.0:
-                    # SUPER DEBUG - Detect ANY relative spike in audio
-                    bg_rms = np.sqrt(np.mean(buffer_copy[:self.classifier._ms_to_samples(50)].astype(np.float32)**2)) + 1e-6
+                    bg_start = 0
+                    bg_end = self.classifier._ms_to_samples(50)
+                    if peak_idx < self.classifier._ms_to_samples(120):
+                        bg_start = len(buffer_copy) - self.classifier._ms_to_samples(50)
+                        bg_end = len(buffer_copy)
+                    
+                    bg_rms = np.sqrt(np.mean(buffer_copy[bg_start:bg_end].astype(np.float32)**2)) + 5.0
                     peak_idx = np.argmax(np.abs(buffer_copy))
                     peak_amp = np.abs(buffer_copy[peak_idx])
                     
                     if peak_idx > self.classifier._ms_to_samples(100):
                         peak_window = buffer_copy[peak_idx-50 : peak_idx+50].astype(np.float32)
-                        peak_rms = np.sqrt(np.mean(peak_window**2)) + 1e-6
+                        peak_rms = np.sqrt(np.mean(peak_window**2)) + 5.0
                         
                         if (peak_rms / bg_rms) > 2.0 and peak_amp > CLAP_MIN_PEAK_AMP:
                             if not hasattr(self, 'last_debug_time'):

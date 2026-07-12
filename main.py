@@ -88,8 +88,8 @@ class SmaranCore:
         self.recognizer.energy_threshold = 200   # High enough to ignore laptop fan/ambient noise, low enough to catch speech
         self.recognizer.dynamic_energy_threshold = False  # Keep threshold fixed — dynamic mode lets fan noise raise it and deafen the mic
         self.recognizer.pause_threshold = 2.0    # Wait 2s of silence before ending a phrase — gives user time to pause between words
-        self.recognizer.phrase_threshold = 0.02   # Extremely low so short impulsive claps are not discarded by the engine
-        self.recognizer.non_speaking_duration = 0.08  # Short pre-phrase buffer
+        self.recognizer.phrase_threshold = 0.2 # Wait 0.2s of speech before starting to record a phrase — prevents cutting off the first word    
+        self.recognizer.non_speaking_duration = 0.8  # making it 0.8 instead of 0.08 helps to avoid cutting off the first word of a phrase.
         try:
             self.mic = sr.Microphone()
         except Exception as e:
@@ -109,20 +109,20 @@ class SmaranCore:
         fn = self.stop_listening_fn 
         if fn is not None:
             self.stop_listening_fn = None
-            print("🔇 [RADAR DEACTIVATED] Stopping passive radar listener...", flush=True)
+            print("Radar System turned off...", flush=True)
             try:
                 # Put a chunk of silence to unblock listener thread from queue.get()
                 if hasattr(self, 'radar_mic') and self.radar_mic:
                     self.radar_mic.audio_queue.put(b'\x00' * (self.radar_mic.CHUNK * 2)) #what it does is that it puts a chunk of silence into the audio queue to unblock the listener thread from waiting indefinitely on audio input. This allows the background listener to exit cleanly.
                 fn(wait_for_stop=True)
-                print("✅ [RADAR DEACTIVATED] Passive radar listener fully stopped.", flush=True) # what it does is that it prints a confirmation message indicating that the passive radar listener has been successfully stopped and the microphone is now released for other uses.
+                print("✅ [RADAR DEACTIVATED] Radar System  fully stopped.", flush=True) # what it does is that it prints a confirmation message indicating that the passive radar listener has been successfully stopped and the microphone is now released for other uses.
             except Exception as e:
-                print(f"[RADAR STOP WARNING] {e}", flush=True)
+                print(f"Radar Error: {e}", flush=True)
 
     def stable_passive_radar(self):
         """STATE 1: Listens in background continuously until wake word hits"""
         if not self.mic:
-            print("❌ microphone is  unavailable. Exiting passive radar.")
+            print(" microphone unavailable. Exiting radar mode.")
             return
 
         # Wait for Whisper model to finish loading before calibrating/listening
@@ -134,7 +134,7 @@ class SmaranCore:
         if self.gui:
             self.state_manager.set_state("idle", "Standby")
 
-        print("🎧 [RADAR CALIBRATION] for checking any ambient sounds from the environment.") #this prints because 
+        print("🎧 checking for any ambient sounds from the environment.") #this prints because 
         try:
             # Use a fresh mic instance for calibration only — separate from the one used for listening
             calib_mic = sr.Microphone()
@@ -236,7 +236,7 @@ class SmaranCore:
                 if self.gui and not self.wake_triggered:
                     self.state_manager.set_state("idle", "Say 'Wake up'")
         except Exception as e:
-            print(f"⚠️ [RADAR TRANSCRIBE WARNING] {e}") #checking for any errors in the wake word detection process
+            print(f"Radar Error: {e}") #checking for any errors in the wake word detection process
             if self.gui and not self.wake_triggered:
                 self.state_manager.set_state("idle", "Say 'Wake up'")
 
@@ -362,7 +362,7 @@ class SmaranCore:
         ]
 
         first_word = text.split()[0] if text.split() else ""
-
+             # Unknown First Word - activates first then deactivates or stays inactive if no match found
         if first_word in ACTIVATE_PREFIXES:
             for phrase in ACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
@@ -424,6 +424,8 @@ class SmaranCore:
         text_words = set(text.split())
         
         # 1. Mode Activation Check
+
+        trigger = { "study mode", "developer mode", "fun mode", "deep mode", "dev mode"}
         mode_triggers = {
             "study mode", "developer mode", "fun mode", "deep mode", "dev mode",
             "activate study mode", "activate dev mode", "activate developer mode", "activate deep mode",
@@ -468,11 +470,11 @@ class SmaranCore:
         
         for category, kw_list in keywords.items():
             for kw in kw_list:
-                if " " in kw:
+                if " " in kw: # "" is used to check for multi-word phrases to avoid partial matches
                     if kw in text:
-                        scores[category] += 2 
+                        scores[category] += 4 #multi-word phrases are given a higher weight of 4 points to emphasize their significance in determining intent, as they are more specific and less likely to occur by chance compared to single keywords.
                 elif re.search(r'\b' + re.escape(kw) + r'\b', text): #this checks for whole word matches using regex word boundaries to avoid partial matches
-                    scores[category] += 1
+                    scores[category] += 1 #single keywords are given a weight of 2 points to contribute to the overall score for that category, allowing for a more nuanced assessment of intent based on the presence of relevant keywords in the user input.
                     
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         highest_cat, highest_score = sorted_scores[0][0], sorted_scores[0][1]
@@ -480,8 +482,8 @@ class SmaranCore:
         
         if highest_score > 0:
             confidence = (highest_score - second_highest_score) / highest_score if highest_score > 0 else 0.0
-            confidence = min(1.0, max(0.2, confidence * (highest_score / (highest_score + 1))))
-            intent, confidence = highest_cat, round(confidence, 2)
+            confidence = min(1.0, max(0.2, confidence * (highest_score / (highest_score + 1)))) #this line calculates a confidence score based on the difference between the highest and second-highest category scores, normalizing it to a range of 0.2 to 1.0 to ensure that even low-confidence predictions have a minimum threshold, while also factoring in the absolute score of the highest category to adjust confidence based on the overall strength of the keyword matches.
+            intent, confidence = highest_cat, round(confidence, 2) 
             print(f"[INTEL]\nIntent: {intent}\nConfidence: {confidence}\n")
             return intent, confidence
             
@@ -528,42 +530,35 @@ class SmaranCore:
         if intent_lower == "weather":
             city = query.lower()
             weather_removals = [
-                # Questions/Commands
-                "what is the weather in", "what's the weather in", "weather summary in", "weather summary for",
-                "will it rain today in", "will it rain in", "is it raining in",
-                "give me the weather summary of", "give me weather summary of", "give me weather summary in",
-                "what time is the", "what time is", "when is the", "when is",
-                # Rain/Precipitation metrics
-                "rain probability today in", "rain probability in", "rain probability for", "rain probability of",
-                "precipitation probability today in", "precipitation probability in", "precipitation probability for", "precipitation probability of",
-                "rain chances today in", "rain chances in", "rain chances for", "rain chances of",
-                "chance of rain today in", "chance of rain in", "chance of rain for", "chance of rain of",
-                "rain today in", "rain in", "rain for", "rain",
-                # Max temperature metrics
-                "maximum temperature today in", "maximum temperature in", "maximum temperature of", "maximum temperature for",
-                "max temperature today in", "max temperature in", "max temperature of", "max temperature for",
-                "maximum temp today in", "maximum temp in", "maximum temp of", "maximum temp for",
-                "max temp today in", "max temp in", "max temp of", "max temp for",
-                # Min temperature metrics
-                "minimum temperature today in", "minimum temperature in", "minimum temperature of", "minimum temperature for",
-                "min temperature today in", "min temperature in", "min temperature of", "min temperature for",
-                "minimum temp today in", "minimum temp in", "minimum temp of", "minimum temp for",
-                "min temp today in", "min temp in", "min temp of", "min temp for",
-                # General temperature metrics
-                "temperature in", "temperature for", "temperature of", "temperature",
-                "temp in", "temp for", "temp of", "temp",
-                # Wind metrics
-                "wind speed in", "wind speed for", "wind speed of", "wind speed",
-                "wind in", "wind for", "wind of",
-                # Sunrise/Sunset metrics
-                "sunrise in", "sunrise for", "sunrise",
-                "sunset in", "sunset for", "sunset",
-                # Other indicators
-                "humidity in", "humidity for", "humidity of", "humidity",
-                "climate in", "climate for", "climate of", "climate",
-                "forecast for", "forecast in", "forecast",
-                "weather in", "weather for", "weather of", "weather at", "weather",
-                "today", "tomorrow", "now", "what is the", "what's the", "tell me about", "get me the", "give me", "show me"
+                r"what is the weather in\s+(.+)"
+                r"what's the weather in\s+(.+)",
+                r"what is the weather like in\s+(.+)",
+                r"what's the weather like in\s+(.+)",
+                r"give me the weather in\s+(.+)",
+                r"give me the weather forecast for\s+(.+)",
+                r"weather in\s+(.+)",
+                r"forecast for\s+(.+)",
+                r"forecast in\s+(.+)",
+                r"current weather in\s+(.+)",
+                r"climate in\s+(.+)",
+                r"temperature in\s+(.+)",
+                r"weather report for\s+(.+)",
+                r"weather summary for\s+(.+)",
+                r"weather update for\s+(.+)",
+                r"weather conditions in\s+(.+)",
+                r"what are the chances of rain in \s+(.+)",
+                r"what is the temperature in\s+(.+)",
+                r"what is the humidity in\s+(.+)",
+                r"what is the wind speed in\s+(.+)",
+                r"what is the sunrise time in\s+(.+)",
+                r"what is the sunset time in\s+(.+)",
+                r"what is the windspeed in\s+(.+)",
+                r"max temperature today in\s+(.+)",
+                r"min temperature today in\s+(.+)",
+                r"what is wind direction in\s+(.+)",
+                r"what is the rain chances in\s+(.+)",
+                r"what time will it rain today in\s+(.+)",
+                r"what time will it not rain today in\s+(.+)",
             ]
             weather_removals.sort(key=len, reverse=True)
             for w in weather_removals:
@@ -713,10 +708,10 @@ class SmaranCore:
             return ""
         text = text.replace("**", "").replace("*", "")
         text = text.replace("`", "")
-        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-        text = re.sub(r'\[\d+\]', '', text)
-        text = re.sub(r'\[citation\]', '', text)
-        text = re.sub(r'<[^>]*>', '', text)
+        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text) #this regex replaces markdown links with just the link text, removing the URL part.
+        text = re.sub(r'\[\d+\]', '', text) #this regeX removes numeric citations in square brackets, e.g., [1], [2], etc.
+        text = re.sub(r'\[citation\]', '', text) #this regex removes the literal string "[citation]" from the text.
+        text = re.sub(r'<[^>]*>', '', text)#this regex removes any HTML tags from the text, e.g., <b>, <i>, etc.
         text = " ".join(text.split())
         
         sentences = re.split(r'(?<=[.!?])\s+', text)
@@ -746,8 +741,8 @@ class SmaranCore:
         """Scores each specialized intelligence agent using local weighted keywords."""
         phrase_weights = {
             "weather": {
-                "weather": 3, "forecast": 3, "temperature": 2, "climate": 2,
-                "rain": 2, "humidity": 2, "sunrise": 2, "sunset": 2, "wind": 2, "weather summary": 3,
+                "weather": 4, "forecast": 2, "temperature": 3, "climate": 1,"precipitation": 1,"maximum": 1, "minimum": 1,
+                "rain": 2, "humidity": 2, "sunrise": 3, "sunset": 3, "wind": 2, "weather summary": 3,"max": 1, "min": 1, "temp": 2, "rain probability": 3, "rain chances": 3,
             },
             "dictionary": {
                 "define": 3, "definition": 3, "meaning": 3, "give me the meaning of": 3,
