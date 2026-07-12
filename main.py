@@ -440,7 +440,7 @@ class SmaranCore:
         sys_triggers = {
             "brave","chrome","opera","opera gx", "shutdown", "stop", "exit", "bye", "goodbye", 
             "sleep", "goodnight", "timer", "clock", "countdown", "calculate", "compute", "solve", "type", "write",
-            "notepad", "calculator", "calc", "cmd", "explorer", "task manager"
+            "notepad", "calculator", "calc", "cmd", "explorer", "task manager", "volume", "mute"
         }
         is_open_cmd = (text.startswith("open ") or text.startswith("launch "))
         if is_open_cmd or any(t in text_words for t in sys_triggers) or "set timer" in text or "countdown" in text or "give me a quote" in text:
