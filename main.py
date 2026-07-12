@@ -14,12 +14,11 @@ from wikipedia_agent import WikipediaAgent
 from news_agent import NewsAgent
 from gemini_agent import GeminiAgent
 from whisper_transcriber import WhisperTranscriber
-import clap_detector
 from dotenv import load_dotenv
 
+
 # Path to the .env file is actually inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AUTOMATION AGENT)\.env\.env)
-dotenv_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-dotenv_file = os.path.join(dotenv_dir, ".env")
+dotenv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env", ".env")
 if os.path.exists(dotenv_file):
     load_dotenv(dotenv_file)
 else:
@@ -111,9 +110,6 @@ class SmaranCore:
             self.stop_listening_fn = None
             print("Radar System turned off...", flush=True)
             try:
-                # Put a chunk of silence to unblock listener thread from queue.get()
-                if hasattr(self, 'radar_mic') and self.radar_mic:
-                    self.radar_mic.audio_queue.put(b'\x00' * (self.radar_mic.CHUNK * 2)) #what it does is that it puts a chunk of silence into the audio queue to unblock the listener thread from waiting indefinitely on audio input. This allows the background listener to exit cleanly.
                 fn(wait_for_stop=True)
                 print("✅ [RADAR DEACTIVATED] Radar System  fully stopped.", flush=True) # what it does is that it prints a confirmation message indicating that the passive radar listener has been successfully stopped and the microphone is now released for other uses.
             except Exception as e:
@@ -150,37 +146,17 @@ class SmaranCore:
         if self.gui:
             self.state_manager.set_state("idle", "Say 'Wake up'")
 
-        def on_clap():
-            print("\n[WAKE]")
-            print("Sound detected.")
-            print("Smaran is Activated.")
-            self.wake_triggered = True
-            
-            def stop_and_wake():
-                self.stop_passive_radar_cleanly()
-                # Force trigger active listening on main thread
-                if self.gui:
-                    self.gui.root.after(0, self.initialize_assistant)
-                else:
-                    threading.Thread(target=self.initialize_assistant, daemon=True).start()#daemon=True means that the thread will run in the background and will not prevent the program from exiting if the main thread finishes execution. This is useful for tasks that should run independently without blocking the main program flow.
-
-            threading.Thread(target=stop_and_wake, daemon=True).start()#this is useful for tasks which req uire background processing
-
         try:
-            radar_mic = clap_detector.BufferedMicSource (
-                on_clap_callback = on_clap ,
-                check_active_callback=lambda: getattr(self, 'sound_detected', False),
-                device_index=self.mic.device_index if self.mic is not None else None
-            )
+            radar_mic = sr.Microphone(device_index=self.mic.device_index if self.mic is not None else None)
             self.radar_mic = radar_mic
-            # Revert to standard phrase threshold since claps are handled by our proxy
+            # Revert to standard phrase threshold
             self.recognizer.phrase_threshold = 0.5
             self.stop_listening_fn = self.recognizer.listen_in_background(
                 radar_mic,
                 self.wake_word_callback,
-                phrase_time_limit = 2         
+                phrase_time_limit = 4         
             )
-            print("Scanning for any background sounds.....") 
+            print("Scanning for wake word triggers in background.....") 
             
         except Exception as e:
             print(f"Radar Error: {e} ") 

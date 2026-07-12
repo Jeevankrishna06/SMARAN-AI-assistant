@@ -2,7 +2,6 @@ import os
 import subprocess
 import webbrowser
 import sys
-import time
 import pyautogui
 import ctypes
 
