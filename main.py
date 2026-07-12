@@ -462,20 +462,20 @@ class SmaranCore:
             "Weather": ["weather", "forecast", "temperature", "temp", "climate", "rain", "humidity", "sunrise", "sunset", "wind"],
             "Dictionary": ["define", "definition", "meaning", "mean", "pronounce", "pronunciation", "part of speech"],
             "Research": ["wikipedia", "wiki", "research", "who is", "who was", "history of", "tell me about", "information about"],
-            "News": ["news", "headlines", "headline", "current events", "what's happening in", "what happened in", "latest news"],
-            "Reasoning": ["explain", "compare", "versus", " vs ", "summarize", "summary", "analyze", "analysis", "why is", "how do", "should i", "which is better"]
+            "News": ["news", "headlines", "headline", "current events", "what's happening in", "what has happened", "what happened in", "latest news"],
+            "Reasoning": ["tell me","find out", "find", "explain", "compare", "versus", " vs ", "summarize", "summary", "analyze", "analysis", "why is", "how do", "should i", "which is better"]
         }
         
         for category, kw_list in keywords.items():
             for kw in kw_list:
                 if " " in kw:
                     if kw in text:
-                        scores[category] += 2
-                elif re.search(r'\b' + re.escape(kw) + r'\b', text):
+                        scores[category] += 2 
+                elif re.search(r'\b' + re.escape(kw) + r'\b', text): #this checks for whole word matches using regex word boundaries to avoid partial matches
                     scores[category] += 1
                     
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        highest_cat, highest_score = sorted_scores[0]
+        highest_cat, highest_score = sorted_scores[0][0], sorted_scores[0][1]
         second_highest_score = sorted_scores[1][1] if len(sorted_scores) > 1 else 0
         
         if highest_score > 0:

@@ -285,7 +285,7 @@ class SmaranBrain:
             "workspace", "study mode", "briefing", "brief me",
             "weather", "forecast", "countdown", "timer",
             "set timer", "start timer", "clock timer", "open clock",
-            "random", "quote", "wisdom",
+            "random", "quote", "wisdom", "volume",
             # Calculator and notepad automation — must NOT go to Groq
             "calculate", "compute", "solve",
             "type ", "write ", "notepad",
@@ -1064,6 +1064,14 @@ class SmaranBrain:
                 "target": "mute",
                 "parameter": "none",
                 "spoken_response": "Muting audio channels, boss."
+            }
+        elif "volume" in text:
+            # Handle queries like "what is the volume" or "tell me the volume"
+            return {
+                "action": "system_control",
+                "target": "get_volume",
+                "parameter": "none",
+                "spoken_response": "Checking the system volume level, boss."
             }
 
         return intent
