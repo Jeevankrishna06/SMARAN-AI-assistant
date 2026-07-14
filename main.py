@@ -365,8 +365,8 @@ class SmaranCore:
         if not text:
             return ""
         
-        # Lowercase and strip whitespace
-        text = text.lower().strip()
+        # Lowercase and strip whitespace & punctuation
+        text = text.lower().strip().rstrip('?.!')
         
         # Word-by-word cleanup from the beginning/end
         fillers = {
@@ -504,9 +504,9 @@ class SmaranCore:
             
         intent_lower = intent.lower()
         if intent_lower == "weather":
-            city = query.lower()
-            weather_removals = [
-                r"what is the weather in\s+(.+)"
+            cleaned_text = query.lower().strip()
+            patterns = [
+                r"what is the weather in\s+(.+)",
                 r"what's the weather in\s+(.+)",
                 r"what is the weather like in\s+(.+)",
                 r"what's the weather like in\s+(.+)",
@@ -535,10 +535,18 @@ class SmaranCore:
                 r"what is the rain chances in\s+(.+)",
                 r"what time will it rain today in\s+(.+)",
                 r"what time will it not rain today in\s+(.+)",
+                r"weather of tomorrow in\s+(.+)",
+                r"weather tomorrow in\s+(.+)",
+                r"weather today in\s+(.+)",
             ]
-            weather_removals.sort(key=len, reverse=True)
-            for w in weather_removals:
-                city = city.replace(w, "")
+            city = None
+            for pattern in patterns:
+                match = re.search(pattern, cleaned_text)
+                if match:
+                    city = match.group(1).strip()
+                    break
+            if not city:
+                city = cleaned_text
             return self._clean_extracted_entity(city)
             
         elif intent_lower == "dictionary":
@@ -618,18 +626,38 @@ class SmaranCore:
             return self._clean_extracted_entity(topic)
             
         elif intent_lower in ("research", "wikipedia"):
-            topic = query.lower()
-            wiki_removals = [
-                "what is the", "what is", "what's the","who is",
-                "search wikipedia for", "wikipedia for", "wikipedia of",
-                "search wiki for", "wiki for", "wiki of",
-                "wikipedia", "wiki", "on wiki", "on wikipedia",
-                "research for", "research on", "research",
-                "tell me about", "look up", "search for", "get me","give me information about", "give me info about"
+            cleaned_text = query.lower().strip()
+            patterns = [
+                r"search wikipedia for\s+(.+)",
+                r"search wiki for\s+(.+)",
+                r"wikipedia for\s+(.+)",
+                r"wikipedia of\s+(.+)",
+                r"wiki for\s+(.+)",
+                r"wiki of\s+(.+)",
+                r"research for\s+(.+)",
+                r"research on\s+(.+)",
+                r"tell me about\s+(.+)",
+                r"give me information about\s+(.+)",
+                r"give me info about\s+(.+)",
+                r"look up\s+(.+)",
+                r"search for\s+(.+)",
+                r"get me\s+(.+)",
+                r"what is the\s+(.+)",
+                r"what is\s+(.+)",
+                r"what's the\s+(.+)",
+                r"who is\s+(.+)",
+                r"research\s+(.+)",
+                r"wikipedia\s+(.+)",
+                r"wiki\s+(.+)",
             ]
-            wiki_removals.sort(key=len, reverse=True)
-            for w in wiki_removals:
-                topic = topic.replace(w, "")
+            topic = None
+            for pattern in patterns:
+                match = re.search(pattern, cleaned_text)
+                if match:
+                    topic = match.group(1).strip()
+                    break
+            if not topic:
+                topic = cleaned_text
             return self._clean_extracted_entity(topic)
             
         elif intent_lower == "reasoning":
@@ -637,12 +665,19 @@ class SmaranCore:
             if "explain " in text:
                 topic = text.split("explain ")[-1].strip().rstrip('?.!')
                 return self._clean_extracted_entity(topic)
-            if "summarize " in text:
+            elif "what is" in text:
+                topic = text.split("what is")[-1].strip().rstrip('?.!')
+                return self._clean_extracted_entity(topic)
+            elif "why" in text:
+                topic = text.split("why")[-1].strip().rstrip('?.!')
+                return self._clean_extracted_entity(topic)
+            elif "summarize " in text:
                 target_text = text.split("summarize ")[-1].strip()
                 return self._clean_extracted_entity(target_text)
+            else:
+                return self._clean_extracted_entity(query)
+        else:
             return self._clean_extracted_entity(query)
-            
-        return self._clean_extracted_entity(query)
 
     def _validate_response(self, response: str) -> bool:
         """
@@ -721,22 +756,22 @@ class SmaranCore:
                 "rain": 2, "humidity": 2, "sunrise": 3, "sunset": 3, "wind": 2, "weather summary": 3,"max": 1, "min": 1, "temp": 2, "rain probability": 3, "rain chances": 3,
             },
             "dictionary": {
-                "define": 3, "definition": 3, "meaning": 3, "give me the meaning of": 3,
+                "define": 4, "definition": 4, "meaning": 3, "give me the meaning of": 3,
                 "mean": 2, "dictionary": 2, "pronounce": 2, "pronunciation": 2,
             },
             "wikipedia": {
-                "research": 3, "tell me about": 3, "wikipedia": 3, "wiki": 2,
-                "who is": 2, "what is": 2, "history of": 2, "information about": 2,
-                "open wikipedia": 3, "search wikipedia": 3,
+                "research": 4, "tell me about": 4, "wikipedia": 3, "wiki": 2,
+                "who is": 2, "what is": 2, "history of": 3, "information about": 2,
+                "open wikipedia": 2, "search wikipedia": 2,
             },
             "news": {
-                "news": 3, "latest news": 3, "headlines": 3, "headline": 2,
+                "news": 4, "latest news": 4, "headlines": 4, "headline": 3,
                 "latest": 1, "current events": 2, "geopolitics": 1, "sports": 1, "sport": 1,
                 "breaking": 1, "update": 1, "updates": 1, "technology": 1, "business": 1,
                 "economy": 1, "finance": 1, "health": 1, "science": 1,
             },
             "reasoning": {
-                "gemini": 3, "explain": 3, "compare": 3, "summarize": 3,
+                "gemini": 4, "explain": 4, "compare": 4, "summarize": 4,
                 "predict": 2, "analyze": 2, "versus": 2, " vs ": 2, "should i": 2, "which is better": 2,
                 "stats": 1, "statistics": 1, "data": 1,
             },
@@ -755,7 +790,7 @@ class SmaranCore:
 
     def _select_agent_by_confidence(self, scores: dict, threshold: int = 1):
         sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True) 
-        winner, highest_score = sorted_scores[0]
+        winner, highest_score = sorted_scores[0]#its not [0][0] because we want the tuple (agent, score) for the winner, not just the agent name
         second_highest_score = sorted_scores[1][1] if len(sorted_scores) > 1 else 0
         confidence_gap = highest_score - second_highest_score
 
@@ -795,29 +830,29 @@ class SmaranCore:
 
         if "sunrise" in text:
             return self.weather_agent.get_sunrise(city)
-        if "sunset" in text:
+        elif "sunset" in text:
             return self.weather_agent.get_sunset(city)
-        if "wind" in text:
+        elif "wind" in text:
             return self.weather_agent.get_wind_speed(city)
-        if "max" in text or "maximum" in text:
+        elif "max" in text or "maximum" in text:
             return self.weather_agent.get_max_temperature(city)
-        if "min" in text or "minimum" in text:
+        elif "min" in text or "minimum" in text:
             return self.weather_agent.get_min_temperature(city)
-        if "temp" in text or "temperature" in text:
+        elif "temp" in text or "temperature" in text:
             return self.weather_agent.get_temperature(city)
-        if "rain" in text or "precipitation" in text or "chance" in text or "probability" in text:
+        elif "rain" in text or "precipitation" in text or "chance" in text or "probability" in text:
             return self.weather_agent.get_rain_probability(city)
-        return self.weather_agent.get_weather_summary(city)
+        else:
+            return self.weather_agent.get_weather_summary(city)
 
     def _execute_dictionary_agent(self, text: str, extracted_entity: str = None) -> str:
         word = extracted_entity if extracted_entity else text
         if not word:
             return "Please specify the word you want me to look up."
-        if "pronounce" in text or "pronunciation" in text:
-            return self.dictionary_agent.get_pronunciation(word)
-        if "part of speech" in text:
+        elif "part of speech" in text:
             return self.dictionary_agent.get_part_of_speech(word)
-        return self.dictionary_agent.get_dictionary_summary(word)
+        else:
+            return self.dictionary_agent.get_dictionary_summary(word)
 
     def _execute_news_agent(self, text: str, extracted_entity: str = None) -> str:
         topic = extracted_entity if extracted_entity else text
@@ -831,11 +866,14 @@ class SmaranCore:
         topic = extracted_entity if extracted_entity else text
         if not topic:
             return "Please specify the topic you want to look up on Wikipedia."
-        if "research" in text or "long" in text:
+        elif "research" in text or "long" in text:
             return self.wikipedia_agent.get_research_summary(topic)
-        if "short" in text or "concise" in text:
+        elif "short" in text or "concise" in text:
             return self.wikipedia_agent.get_short_summary(topic)
-        return self.wikipedia_agent.get_summary(topic)
+        elif "find out" in text or "tell me about" in text or "information" in text:
+            return self.wikipedia_agent.get_information(topic)
+        else:
+            return self.wikipedia_agent.get_summary(topic)
 
     def _execute_gemini_agent(self, user_input: str, text: str, extracted_entity: str = None) -> str:
         if "explain " in text:
@@ -869,13 +907,14 @@ class SmaranCore:
         }
         if selected_agent == "weather":
             return self._execute_weather_agent(normalized_query, extracted_entity), agent_names[selected_agent]
-        if selected_agent == "dictionary":
+        elif selected_agent == "dictionary":
             return self._execute_dictionary_agent(normalized_query, extracted_entity), agent_names[selected_agent]
-        if selected_agent == "wikipedia":
+        elif selected_agent == "wikipedia":
             return self._execute_wikipedia_agent(normalized_query, extracted_entity), agent_names[selected_agent]
-        if selected_agent == "news":
+        elif selected_agent == "news":
             return self._execute_news_agent(normalized_query, extracted_entity), agent_names[selected_agent]
-        return self._execute_gemini_agent(user_input, normalized_query, extracted_entity), agent_names["reasoning"]
+        else:
+            return self._execute_gemini_agent(user_input, normalized_query, extracted_entity), agent_names["reasoning"]
 
     def _run_intelligence_query(self, user_input: str):
         """
@@ -886,7 +925,7 @@ class SmaranCore:
         start_time = time.perf_counter()
         
         # ── LOCAL SOCIAL INTERCEPTS ───────────────────────────────────────────
-        text_check = user_input.lower().strip().rstrip('.')
+        text_check = user_input.lower().strip().rstrip('.!?')
         SOCIAL_RESPONSES = {
             "thank you":     "Always a pleasure, boss.",
             "thanks":        "Of course, boss.",
@@ -912,7 +951,7 @@ class SmaranCore:
             self.speak(local_reply, "Intelligence Mode")
             if self.gui:
                 self.state_manager.set_state("intel_active")
-            self.gui.root.after(600, self.start_active_listening)
+            self.gui.root.after(300, self.start_active_listening)#300ms delay will allow the GUI to update and the user to see the response before resuming listening   
             return
 
         # 1. Intent Analysis
