@@ -49,11 +49,11 @@ class SmaranBrain:
         if text.endswith(" smaran"):
             text = text[:-7]
             
-        text = text.strip()
+        text = text.strip().rstrip('.!?')
 
         # Check conversational patterns first to override LLM and heuristics
         # Pattern 1: How is it doing
-        if any(p in text for p in ["how are you", "how're you", "how are you doing", "how you doing"]):
+        if any(p in text for p in ["how are you", "how're you", "how are you doing", "how you doing", "how are u", "how're u"]):
             return {
                 "action": "conversational_reply",
                 "target": "none",
@@ -293,7 +293,7 @@ class SmaranBrain:
             "okay", "ok", "go ahead", "never mind",
             "yes", "no", "sure", "alright", "got it",
             # Greetings handled by heuristics, not Groq
-            "how are you", "how are you doing", "how you doing", "how're you",
+            "how are you", "how are you doing", "how you doing", "how're you", "how are u", "how're u",
             "hello", "hi", "hey", "yo", "sup", "wassup", "howdy",
             "good morning", "good afternoon", "good evening",
             "thank you", "thanks",
@@ -389,7 +389,7 @@ class SmaranBrain:
         if text.endswith(" smaran") and not _content_dictation:
             text = text[:-7]
 
-        text = text.strip()
+        text = text.strip().rstrip('.!?')
         
         # Check for shutdown commands first (with expanded wake/sleep keywords)
         shutdown_phrases = [
@@ -562,6 +562,18 @@ class SmaranBrain:
             "thanks": "Anytime, boss!",
             "okay": "Ready when you are, boss.",
             "ok": "Ready when you are, boss.",
+            "thank you so much": "Glad I could help, boss.",
+            "cool":          "Glad you think so, boss.",
+            "got it":        "Great, boss. Anything else?",
+            "nice":          "Happy to help, boss.",
+            "awesome":       "Glad to be useful, boss.",
+            "great":         "Good to hear, boss. What's next?",
+            "thanks a lot":   "You're welcome, boss.",
+            "hm":            "anything else, boss?",
+            "hmm":           "Yes, boss? What else can I do for you?",
+            "alright":       "Alright, boss. What else can I help with?",
+            "i see":         "Good. Let me know if you have more questions, boss.",
+            "interesting":   "I am glad you find it interesting, boss.",
         }
 
         # Check for simple greeting/conversational match
@@ -717,6 +729,32 @@ class SmaranBrain:
                     "parameter": _expr_raw,
                     "spoken_response": "Opening Calculator and computing the result, boss."
                 }
+
+        # --- RULE 2c: DIRECT MATH EXPRESSIONS ---
+        # Detects direct math equations like "100 plus 50", "20 times 5", "10 + 5"
+        # Checks if the query contains at least two numbers and a math operator, and avoids search/browser/app commands
+        _number_pattern = r'\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|\d+(?:\.\d+)?)\b'
+        _math_ops = [
+            "plus", "add", "added to",
+            "minus", "subtract", "subtracted from", "take away",
+            "times", "multiplied by", "multiply by", "into", "star",
+            "divided by", "divide by", "over", "by",
+            r'\+', r'\-', r'\*', r'\/', r'\*\*'
+        ]
+        _op_pattern = r'\b(?:' + '|'.join(_math_ops) + r')\b|[\+\-\*\/\^]'
+        
+        _numbers = re.findall(_number_pattern, clean_text.lower())
+        _has_operator = re.search(_op_pattern, clean_text.lower())
+        _avoid_words = ["search", "google", "look up", "play", "youtube", "open", "launch", "weather", "forecast", "briefing"]
+        _has_avoid_word = any(w in clean_text.lower() for w in _avoid_words)
+        
+        if len(_numbers) >= 2 and _has_operator and not _has_avoid_word:
+            return {
+                "action": "calculator_compute",
+                "target": "calculator",
+                "parameter": clean_text,
+                "spoken_response": "Opening Calculator and computing the result, boss."
+            }
 
         # --- RULE 3: ALGORITHMIC LOGIC ENGINES ---
         # Skill 5: Curated Wisdom Vault

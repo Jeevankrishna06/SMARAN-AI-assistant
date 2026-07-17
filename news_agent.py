@@ -10,10 +10,10 @@ class NewsAgent:
     Requires the GNEWS_API_KEY environment variable to be set.
     """
 
-    BASE_URL = "https://gnews.io/api/v4"
+    BASE_URL = os.getenv("BASE_URL_NEWS")
 
     def __init__(self):
-        self._api_key = "cede079da06bc8824baebce45abec5ea"
+        self._api_key = os.getenv("NEWS_API_KEY")
         if not self._api_key:
             raise ValueError(
                 "GNews API key is not set. "

@@ -4,6 +4,7 @@ import webbrowser
 import sys
 import pyautogui
 import ctypes
+import time
 
 class OSController:
     def __init__(self):
@@ -161,6 +162,8 @@ class OSController:
         noise_phrases = [
             "in the calculator", "in calculator", "on the calculator",
             "the result of", "result of", "the answer to",
+            "the value of", "value of", "value",
+            "the sum of", "sum of",
             "what is", "what's", "please",
             "calculate", "compute", "solve", "find", "evaluate",
         ]

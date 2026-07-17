@@ -35,7 +35,7 @@ class DictionaryAgent:
                 raise ValueError("Word not found")
             return data
 
-        url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word_clean}"
+        url = os.getenv("URL_DICTIONARY").format(word_clean=word_clean)
         try:
             response = self._robust_get(url)
             

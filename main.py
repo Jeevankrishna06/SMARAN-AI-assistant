@@ -3,6 +3,7 @@ import sys
 import re
 import threading
 import time
+import vulture
 import speech_recognition as sr
 from os_controller import OSController
 from voice_engine import SmaranVoice
@@ -17,7 +18,7 @@ from whisper_transcriber import WhisperTranscriber
 from dotenv import load_dotenv
 
 
-# Path to the .env file is actually inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AUTOMATION AGENT)\.env\.env)
+# Path to the .env file is actually inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AGENT)\.env\.env)
 dotenv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env", ".env")
 if os.path.exists(dotenv_file):
     load_dotenv(dotenv_file)
@@ -105,6 +106,7 @@ class SmaranCore:
 
     def stop_passive_radar_cleanly(self):
         """Stops the passive background wake listener and waits for mic release""" #it performs a clean shutdown of the passive radar listener, ensuring that the microphone is released and any background threads are properly terminated.
+
         fn = self.stop_listening_fn 
         if fn is not None:
             self.stop_listening_fn = None
@@ -166,6 +168,8 @@ class SmaranCore:
         # Keep thread alive until wake word is triggered
         while not self.wake_triggered:
             time.sleep(0.5)
+
+
 
 
 
@@ -234,28 +238,39 @@ class SmaranCore:
 
     def initialize_assistant(self):
         """Plays greeting and arms microphone sequentially"""
-        if self.gui:
-            self.state_manager.set_state("idle", "Activating Smaran...")
-
-        # Prioritize a quick, highly recognizable wake-up audio and store the resolved path
-        self.wake_wav_path = r"C:\Windows\Media\Windows Unlock.wav"
-        if not os.path.exists(self.wake_wav_path):
-            self.wake_wav_path = r"C:\Windows\Media\Windows Logon.wav"
-        if not os.path.exists(self.wake_wav_path):
-            self.wake_wav_path = r"C:\Windows\Media\Windows Background.wav"
-        if not os.path.exists(self.wake_wav_path):
-            self.wake_wav_path = r"C:\Windows\Media\chimes.wav"
-
-        # Play the introductory audio chime synchronously here  
+        print("[DEBUG] initialize_assistant thread started", flush=True)
         try:
-            import winsound
-            winsound.PlaySound(self.wake_wav_path, winsound.SND_FILENAME)
+            if self.gui:
+                print("[DEBUG] Setting state_manager state to Activating...", flush=True)
+                self.state_manager.set_state("idle", "Activating Smaran...")
+
+            # Prioritize a quick, highly recognizable wake-up audio and store the resolved path
+            self.wake_wav_path = r"C:\Windows\Media\Windows Unlock.wav"
+            if not os.path.exists(self.wake_wav_path):
+                self.wake_wav_path = r"C:\Windows\Media\Windows Logon.wav"
+            if not os.path.exists(self.wake_wav_path):
+                self.wake_wav_path = r"C:\Windows\Media\Windows Background.wav"
+            if not os.path.exists(self.wake_wav_path):
+                self.wake_wav_path = r"C:\Windows\Media\chimes.wav"
+
+            print(f"[DEBUG] Attempting to play intro audio: {self.wake_wav_path}", flush=True)
+            # Play the introductory audio chime synchronously here  
+            try:
+                import winsound
+                winsound.PlaySound(self.wake_wav_path, winsound.SND_FILENAME)
+                print("[DEBUG] Intro audio play completed", flush=True)
+            except Exception as e:
+                print(f"Error in intro audio: {e}", flush=True)
+                
+            greeting = "I have been activated, boss. ready to serve you."
+            print("[DEBUG] Calling self.speak...", flush=True)
+            self.speak(greeting, "Speaking greeting...")
+            print("[DEBUG] self.speak returned. Calling start_active_listening...", flush=True)
+            self.start_active_listening()
+            print("[DEBUG] start_active_listening completed successfully", flush=True)
         except Exception as e:
-            print(f"Error in intro audio: {e}")
-            
-        greeting = "I have been activated, boss. ready to serve you."
-        self.speak(greeting, "Speaking greeting...")
-        self.start_active_listening()
+            import traceback
+            print(f"[DEBUG ERROR] Exception in initialize_assistant:\n{traceback.format_exc()}", flush=True)
 
     def speak(self, text, task_desc=None): 
         """Helper to speak text — mutes mic during TTS to prevent audio feedback echo loops"""
@@ -467,6 +482,21 @@ class SmaranCore:
         print(f"[INTEL]\nIntent: {intent}\nConfidence: {confidence}")
         return intent, confidence
 
+    def _preprocess_router_query(self, user_input: str) -> str:
+        """Normalizes a query for local scoring while preserving the original elsewhere."""
+        text = user_input.lower().strip()
+        text = re.sub(r'[^\w\s]', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+
+        filler_patterns = [
+            r'\bcan you please\b', r'\bcould you please\b', r'\bplease\b',
+            r'\bcan you\b', r'\bcould you\b', r'\bwould you\b',
+            r'\bi want to know\b', r'\bi need to know\b',
+        ]
+        for pattern in filler_patterns:
+            text = re.sub(pattern, ' ', text)
+        return re.sub(r'\s+', ' ', text).strip()
+
     def _resolve_context(self, user_input: str, intent: str) -> tuple[str, str]:
         """
         Resolves pronouns in the user_input using self.intel_context if available.
@@ -495,289 +525,34 @@ class SmaranCore:
             
         return user_input, None
 
-    def _extract_entity(self, query: str, intent: str) -> str:
-        """
-        Centrally extracts the clean entity (topic, city, word) based on intent.
-        """
-        if not intent:
-            return self._clean_extracted_entity(query)
-            
-        intent_lower = intent.lower()
-        if intent_lower == "weather":
-            cleaned_text = query.lower().strip()
-            patterns = [
-                r"what is the weather in\s+(.+)",
-                r"what's the weather in\s+(.+)",
-                r"what is the weather like in\s+(.+)",
-                r"what's the weather like in\s+(.+)",
-                r"give me the weather in\s+(.+)",
-                r"give me the weather forecast for\s+(.+)",
-                r"weather in\s+(.+)",
-                r"forecast for\s+(.+)",
-                r"forecast in\s+(.+)",
-                r"current weather in\s+(.+)",
-                r"climate in\s+(.+)",
-                r"temperature in\s+(.+)",
-                r"weather report for\s+(.+)",
-                r"weather summary for\s+(.+)",
-                r"weather update for\s+(.+)",
-                r"weather conditions in\s+(.+)",
-                r"what are the chances of rain in \s+(.+)",
-                r"what is the temperature in\s+(.+)",
-                r"what is the humidity in\s+(.+)",
-                r"what is the wind speed in\s+(.+)",
-                r"what is the sunrise time in\s+(.+)",
-                r"what is the sunset time in\s+(.+)",
-                r"what is the windspeed in\s+(.+)",
-                r"max temperature today in\s+(.+)",
-                r"min temperature today in\s+(.+)",
-                r"what is wind direction in\s+(.+)",
-                r"what is the rain chances in\s+(.+)",
-                r"what time will it rain today in\s+(.+)",
-                r"what time will it not rain today in\s+(.+)",
-                r"weather of tomorrow in\s+(.+)",
-                r"weather tomorrow in\s+(.+)",
-                r"weather today in\s+(.+)",
-            ]
-            city = None
-            for pattern in patterns:
-                match = re.search(pattern, cleaned_text)
-                if match:
-                    city = match.group(1).strip()
-                    break
-            if not city:
-                city = cleaned_text
-            return self._clean_extracted_entity(city)
-            
-        elif intent_lower == "dictionary":
-            cleaned_text = query.lower().strip()
-            patterns = [
-                r"tell me the meaning of\s+(.+)",
-                r"meaning of the\s+(.+)",
-                r"definition of the\s+(.+)",
-                r"pronunciation of the\s+(.+)",
-                r"part of speech of the\s+(.+)",
-                r"what does\s+(.+)\s+mean",
-                r"definition of\s+(.+)",
-                r"meaning of\s+(.+)",
-                r"pronunciation of\s+(.+)",
-                r"part of speech of\s+(.+)",
-                r"tell me the\s+(.+)",
-                r"what is the\s+(.+)",
-                r"what's the\s+(.+)",
-                r"what does\s+(.+)",
-                r"what is\s+(.+)",
-                r"define\s+(.+)",
-                r"meaning\s+(.+)",
-                r"definition\s+(.+)",
-                r"pronounce\s+(.+)",
-                r"pronunciation\s+(.+)",
-                r"mean\s+(.+)"
-            ]
-            word = None
-            for pattern in patterns:
-                match = re.search(pattern, cleaned_text)
-                if match:
-                    word = match.group(1).strip()
-                    break
-            if not word:
-                word = cleaned_text
-            return self._clean_extracted_entity(word)
-            
-        elif intent_lower == "news":
-            cleaned_text = query.lower().strip()
-            patterns = [
-                r"give me the latest news on\s+(.+)",
-                r"give me the latest news about\s+(.+)",
-                r"give me the latest headlines on\s+(.+)",
-                r"give me the latest headlines about\s+(.+)",
-                r"give me latest news on\s+(.+)",
-                r"give me latest news about\s+(.+)",
-                r"give me news on\s+(.+)",
-                r"give me news about\s+(.+)",
-                r"news about\s+(.+)",
-                r"news on\s+(.+)",
-                r"news of\s+(.+)",
-                r"headlines about\s+(.+)",
-                r"headlines on\s+(.+)",
-                r"headlines of\s+(.+)",
-                r"what's happening in\s+(.+)",
-                r"what's going on in\s+(.+)",
-                r"what is happening in\s+(.+)",
-                r"what is going on in\s+(.+)",
-                r"what happened in\s+(.+)",
-                r"give me the latest\s+(.+)",
-                r"give me the\s+(.+)",
-                r"give me\s+(.+)",
-                r"headlines\s+(.+)",
-                r"headline\s+(.+)",
-                r"latest\s+(.+)",
-                r"show me\s+(.+)",
-                r"tell me\s+(.+)"
-            ]
-            topic = None
-            for pattern in patterns:
-                match = re.search(pattern, cleaned_text)
-                if match:
-                    topic = match.group(1).strip()
-                    break
-            if not topic:
-                topic = cleaned_text
-            return self._clean_extracted_entity(topic)
-            
-        elif intent_lower in ("research", "wikipedia"):
-            cleaned_text = query.lower().strip()
-            patterns = [
-                r"search wikipedia for\s+(.+)",
-                r"search wiki for\s+(.+)",
-                r"wikipedia for\s+(.+)",
-                r"wikipedia of\s+(.+)",
-                r"wiki for\s+(.+)",
-                r"wiki of\s+(.+)",
-                r"research for\s+(.+)",
-                r"research on\s+(.+)",
-                r"tell me about\s+(.+)",
-                r"give me information about\s+(.+)",
-                r"give me info about\s+(.+)",
-                r"look up\s+(.+)",
-                r"search for\s+(.+)",
-                r"get me\s+(.+)",
-                r"what is the\s+(.+)",
-                r"what is\s+(.+)",
-                r"what's the\s+(.+)",
-                r"who is\s+(.+)",
-                r"research\s+(.+)",
-                r"wikipedia\s+(.+)",
-                r"wiki\s+(.+)",
-            ]
-            topic = None
-            for pattern in patterns:
-                match = re.search(pattern, cleaned_text)
-                if match:
-                    topic = match.group(1).strip()
-                    break
-            if not topic:
-                topic = cleaned_text
-            return self._clean_extracted_entity(topic)
-            
-        elif intent_lower == "reasoning":
-            text = query.lower().strip()
-            if "explain " in text:
-                topic = text.split("explain ")[-1].strip().rstrip('?.!')
-                return self._clean_extracted_entity(topic)
-            elif "what is" in text:
-                topic = text.split("what is")[-1].strip().rstrip('?.!')
-                return self._clean_extracted_entity(topic)
-            elif "why" in text:
-                topic = text.split("why")[-1].strip().rstrip('?.!')
-                return self._clean_extracted_entity(topic)
-            elif "summarize " in text:
-                target_text = text.split("summarize ")[-1].strip()
-                return self._clean_extracted_entity(target_text)
-            else:
-                return self._clean_extracted_entity(query)
-        else:
-            return self._clean_extracted_entity(query)
-
-    def _validate_response(self, response: str) -> bool:
-        """
-        Validates response string for empty/short/error patterns.
-        """
-        if not response:
-            return False
-        response_clean = response.strip().lower()
-        if len(response_clean) < 5:
-            return False
-        
-        # Error substrings
-        error_patterns = [
-            "couldn't retrieve",
-            "could not retrieve",
-            "error:",
-            "failed to",
-            "api error",
-            "internal server error",
-            "rate limit",
-            "quota exceeded",
-            "resource_exhausted",
-            "429 resource exhausted",
-            "temporarily unavailable",
-            "sorry boss, i couldn't",
-            "sorry, i couldn't",
-        ]
-        if any(pat in response_clean for pat in error_patterns):
-            return False
-            
-        return True
-
-    def _make_voice_friendly(self, text: str) -> str:
-        """
-        Formats text for voice output: removes markdown syntax,
-        bracketed citations, and returns a clean spoken format.
-        """
-        if not text:
-            return ""
-        text = text.replace("**", "").replace("*", "")
-        text = text.replace("`", "")
-        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text) #this regex replaces markdown links with just the link text, removing the URL part.
-        text = re.sub(r'\[\d+\]', '', text) #this regeX removes numeric citations in square brackets, e.g., [1], [2], etc.
-        text = re.sub(r'\[citation\]', '', text) #this regex removes the literal string "[citation]" from the text.
-        text = re.sub(r'<[^>]*>', '', text)#this regex removes any HTML tags from the text, e.g., <b>, <i>, etc.
-        text = " ".join(text.split())
-        
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-        sentences = [s.strip() for s in sentences if s.strip()]
-        if len(sentences) > 6:
-            text = " ".join(sentences[:6])
-            
-        return text
-
-
-    def _preprocess_router_query(self, user_input: str) -> str: #this is the main preprocessing function for router scoring and agent selection. It normalizes the query for keyword matching while preserving the original user input for Gemini classification and final execution.
-        """Normalizes a query for local scoring while preserving the original elsewhere."""
-        text = user_input.lower().strip()
-        text = re.sub(r'[^\w\s]', ' ', text)
-        text = re.sub(r'\s+', ' ', text).strip()
-
-        filler_patterns = [
-            r'\bcan you please\b', r'\bcould you please\b', r'\bplease\b',
-            r'\bcan you\b', r'\bcould you\b', r'\bwould you\b',
-            r'\bi want to know\b', r'\bi need to know\b',
-        ]
-        for pattern in filler_patterns:
-            text = re.sub(pattern, ' ', text)
-        return re.sub(r'\s+', ' ', text).strip()
-
-    def _score_intelligence_agents(self, normalized_query: str) -> dict: #performs local keyword scoring for each specialized agent to inform routing decisions. This is a lightweight, interpretable heuristic layer that runs before any LLM calls to Gemini or Groq
+    def _score_intelligence_agents(self, normalized_query: str) -> dict:
         """Scores each specialized intelligence agent using local weighted keywords."""
         phrase_weights = {
             "weather": {
-                "weather": 4, "forecast": 2, "temperature": 3, "climate": 1,"precipitation": 1,"maximum": 1, "minimum": 1,
-                "rain": 2, "humidity": 2, "sunrise": 3, "sunset": 3, "wind": 2, "weather summary": 3,"max": 1, "min": 1, "temp": 2, "rain probability": 3, "rain chances": 3,
+                "weather": 1, "temperature": 1, "rain": 1, "forecast": 1,
+                "climate": 1, "humidity": 1, "sunrise": 1, "sunset": 1, "wind": 1, "weather summary": 1,
             },
             "dictionary": {
-                "define": 4, "definition": 4, "meaning": 3, "give me the meaning of": 3,
-                "mean": 2, "dictionary": 2, "pronounce": 2, "pronunciation": 2,
+                "define": 1, "definition": 1, "meaning": 1, "dictionary": 1,
+                "mean": 1, "word": 1, "pronounce": 1, "pronunciation": 1,
             },
             "wikipedia": {
-                "research": 4, "tell me about": 4, "wikipedia": 3, "wiki": 2,
-                "who is": 2, "what is": 2, "history of": 3, "information about": 2,
-                "open wikipedia": 2, "search wikipedia": 2,
+                "who is": 1, "who was": 1, "tell me about": 1, "history of": 1,
+                "information about": 1, "research": 1, "wikipedia": 1, "wiki": 1, "open wikipedia": 1,
+                "search wikipedia": 1,
             },
             "news": {
-                "news": 4, "latest news": 4, "headlines": 4, "headline": 3,
-                "latest": 1, "current events": 2, "geopolitics": 1, "sports": 1, "sport": 1,
-                "breaking": 1, "update": 1, "updates": 1, "technology": 1, "business": 1,
-                "economy": 1, "finance": 1, "health": 1, "science": 1,
+                "news": 1, "latest": 1, "headline": 1, "headlines": 1, "current events": 1, "geopolitics": 1, "sports": 1,
+                "breaking": 1, "update": 1, "updates": 1, "fields": 1, "sport": 1, "technology": 1, "business": 1, "ai": 1,
+                "artificial intelligence": 1, "economy": 1, "finance": 1, "health": 1, "science": 1,
             },
             "reasoning": {
-                "gemini": 4, "explain": 4, "compare": 4, "summarize": 4,
-                "predict": 2, "analyze": 2, "versus": 2, " vs ": 2, "should i": 2, "which is better": 2,
-                "stats": 1, "statistics": 1, "data": 1,
+                "gemini": 1, "explain": 1, "compare": 1, "summarize": 1, "predict": 1, "analyze": 1, "stats": 1, "statistics": 1, "data": 1,
+                "versus": 1, " vs ": 1, "should i": 1, "which is better": 1,
             },
         }
 
-        padded_query = f" {normalized_query} " #performs both exact phrase matching and individual keyword matching with word boundary checks.
+        padded_query = f" {normalized_query} "
         scores = {agent: 0 for agent in phrase_weights}
         for agent, weights in phrase_weights.items(): 
             for phrase, weight in weights.items():
