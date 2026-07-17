@@ -482,6 +482,59 @@ class SmaranCore:
         print(f"[INTEL]\nIntent: {intent}\nConfidence: {confidence}")
         return intent, confidence
 
+    def _validate_response(self, response: str) -> bool:
+        """
+        Validates response string for empty/short/error patterns.
+        """
+        if not response:
+            return False
+        response_clean = response.strip().lower()
+        if len(response_clean) < 5:
+            return False
+        
+        # Error substrings
+        error_patterns = [
+            "couldn't retrieve",
+            "could not retrieve",
+            "error:",
+            "failed to",
+            "api error",
+            "internal server error",
+            "rate limit",
+            "quota exceeded",
+            "resource_exhausted",
+            "429 resource exhausted",
+            "temporarily unavailable",
+            "sorry boss, i couldn't",
+            "sorry, i couldn't",
+        ]
+        if any(pat in response_clean for pat in error_patterns):
+            return False
+            
+        return True
+
+    def _make_voice_friendly(self, text: str) -> str:
+        """
+        Formats text for voice output: removes markdown syntax,
+        bracketed citations, and returns a clean spoken format.
+        """
+        if not text:
+            return ""
+        text = text.replace("**", "").replace("*", "")
+        text = text.replace("`", "")
+        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+        text = re.sub(r'\[\d+\]', '', text)
+        text = re.sub(r'\[citation\]', '', text)
+        text = re.sub(r'<[^>]*>', '', text)
+        text = " ".join(text.split())
+        
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        if len(sentences) > 6:
+            text = " ".join(sentences[:6])
+            
+        return text
+
     def _preprocess_router_query(self, user_input: str) -> str:
         """Normalizes a query for local scoring while preserving the original elsewhere."""
         text = user_input.lower().strip()
@@ -524,6 +577,175 @@ class SmaranCore:
             return resolved_query, last_agent
             
         return user_input, None
+
+    def _extract_entity(self, query: str, intent: str) -> str:
+        """
+        Centrally extracts the clean entity (topic, city, word) based on intent.
+        """
+        if not intent:
+            return self._clean_extracted_entity(query)
+            
+        intent_lower = intent.lower()
+        if intent_lower == "weather":
+            cleaned_text = query.lower().strip()
+            patterns = [
+                r"what is the weather in\s+(.+)",
+                r"what's the weather in\s+(.+)",
+                r"what is the weather of\s+(.+)",
+                r"what's the weather of\s+(.+)",
+                r"what is the weather like in\s+(.+)",
+                r"what's the weather like in\s+(.+)",
+                r"give me the weather in\s+(.+)",
+                r"give me the weather of\s+(.+)",
+                r"give me the weather forecast for\s+(.+)",
+                r"give me (?:the )?weather summary of\s+(.+)",
+                r"tell me the weather (?:of|in|for)\s+(.+)",
+                r"weather of\s+(.+)",
+                r"weather in\s+(.+)",
+                r"weather for\s+(.+)",
+                r"forecast for\s+(.+)",
+                r"forecast in\s+(.+)",
+                r"forecast of\s+(.+)",
+                r"current weather in\s+(.+)",
+                r"current weather of\s+(.+)",
+                r"climate in\s+(.+)",
+                r"climate of\s+(.+)",
+                r"temperature in\s+(.+)",
+                r"temperature of\s+(.+)",
+                r"weather report for\s+(.+)",
+                r"weather summary for\s+(.+)",
+                r"weather summary of\s+(.+)",
+                r"weather update for\s+(.+)",
+                r"weather conditions in\s+(.+)",
+                r"what are the chances of rain in \s+(.+)",
+                r"what is the temperature in\s+(.+)",
+                r"what is the temperature of\s+(.+)",
+                r"what is the humidity in\s+(.+)",
+                r"what is the wind speed in\s+(.+)",
+                r"what is the sunrise time in\s+(.+)",
+                r"what is the sunset time in\s+(.+)",
+                r"what is the windspeed in\s+(.+)",
+                r"max temperature today in\s+(.+)",
+                r"min temperature today in\s+(.+)",
+                r"what is wind direction in\s+(.+)",
+                r"what is the rain chances in\s+(.+)",
+                r"what time will it rain today in\s+(.+)",
+                r"what time will it not rain today in\s+(.+)",
+                r"weather of tomorrow in\s+(.+)",
+                r"weather tomorrow in\s+(.+)",
+                r"weather today in\s+(.+)",
+            ]
+            city = None
+            for pattern in patterns:
+                match = re.search(pattern, cleaned_text)
+                if match:
+                    city = match.group(1).strip()
+                    break
+            if not city:
+                city = cleaned_text
+            return self._clean_extracted_entity(city)
+            
+        elif intent_lower == "dictionary":
+            cleaned_text = query.lower().strip()
+            patterns = [
+                r"tell me the meaning of\s+(.+)",
+                r"meaning of the\s+(.+)",
+                r"definition of the\s+(.+)",
+                r"pronunciation of the\s+(.+)",
+                r"part of speech of the\s+(.+)",
+                r"what does\s+(.+)\s+mean",
+                r"definition of\s+(.+)",
+                r"meaning of\s+(.+)",
+                r"pronunciation of\s+(.+)",
+                r"part of speech of\s+(.+)",
+                r"tell me the\s+(.+)",
+                r"what is the\s+(.+)",
+                r"what's the\s+(.+)",
+                r"what does\s+(.+)",
+                r"what is\s+(.+)",
+                r"define\s+(.+)",
+                r"meaning\s+(.+)",
+                r"definition\s+(.+)",
+                r"pronounce\s+(.+)",
+                r"pronunciation\s+(.+)",
+                r"mean\s+(.+)"
+            ]
+            word = None
+            for pattern in patterns:
+                match = re.search(pattern, cleaned_text)
+                if match:
+                    word = match.group(1).strip()
+                    break
+            if not word:
+                word = cleaned_text
+            return self._clean_extracted_entity(word)
+            
+        elif intent_lower == "news":
+            cleaned_text = query.lower().strip()
+            patterns = [
+                r"give me the latest news on\s+(.+)",
+                r"give me the latest news about\s+(.+)",
+                r"give me the latest headlines on\s+(.+)",
+                r"give me the latest headlines about\s+(.+)",
+                r"give me latest news on\s+(.+)",
+                r"give me latest news about\s+(.+)",
+                r"give me news on\s+(.+)",
+                r"give me news about\s+(.+)",
+                r"news about\s+(.+)",
+                r"news on\s+(.+)",
+                r"news of\s+(.+)",
+                r"headlines about\s+(.+)",
+                r"headlines on\s+(.+)",
+                r"headlines of\s+(.+)",
+                r"what's happening in\s+(.+)",
+                r"what's going on in\s+(.+)",
+                r"what is happening in\s+(.+)",
+                r"what is going on in\s+(.+)",
+                r"what happened in\s+(.+)",
+                r"give me the latest\s+(.+)",
+                r"give me the\s+(.+)",
+                r"give me\s+(.+)",
+                r"headlines\s+(.+)",
+                r"headline\s+(.+)",
+                r"latest\s+(.+)",
+                r"show me\s+(.+)",
+                r"tell me\s+(.+)"
+            ]
+            topic = None
+            for pattern in patterns:
+                match = re.search(pattern, cleaned_text)
+                if match:
+                    topic = match.group(1).strip()
+                    break
+            if not topic:
+                topic = cleaned_text
+            return self._clean_extracted_entity(topic)
+            
+        elif intent_lower in ("research", "wikipedia"):
+            topic = query.lower()
+            wiki_removals = [
+                "what is the", "what is", "what's the","who is",
+                "search wikipedia for", "wikipedia for", "wikipedia of",
+                "search wiki for", "wiki for", "wiki of",
+                "wikipedia", "wiki", "on wiki", "on wikipedia",
+                "tell me about", "look up", "search for", "get me","give me information about", "give me info about"
+            ]
+            wiki_removals.sort(key=len, reverse=True)
+            for w in wiki_removals:
+                topic = topic.replace(w, "")
+            return self._clean_extracted_entity(topic)
+            
+        elif intent_lower == "reasoning":
+            text = query.lower().strip()
+            if "explain " in text:
+                topic = text.split("explain ")[-1].strip().rstrip('?.!')
+                return self._clean_extracted_entity(topic)
+            if "summarize " in text:
+                target_text = text.split("summarize ")[-1].strip()
+                return self._clean_extracted_entity(target_text)
+            return self._clean_extracted_entity(query)
+            
+        return self._clean_extracted_entity(query)
 
     def _score_intelligence_agents(self, normalized_query: str) -> dict:
         """Scores each specialized intelligence agent using local weighted keywords."""
