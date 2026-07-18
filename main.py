@@ -238,39 +238,28 @@ class SmaranCore:
 
     def initialize_assistant(self):
         """Plays greeting and arms microphone sequentially"""
-        print("[DEBUG] initialize_assistant thread started", flush=True)
+        if self.gui:
+            self.state_manager.set_state("idle", "Activating Smaran...")
+
+        # Prioritize a quick, highly recognizable wake-up audio and store the resolved path
+        self.wake_wav_path = r"C:\Windows\Media\Windows Unlock.wav"
+        if not os.path.exists(self.wake_wav_path):
+            self.wake_wav_path = r"C:\Windows\Media\Windows Logon.wav"
+        if not os.path.exists(self.wake_wav_path):
+            self.wake_wav_path = r"C:\Windows\Media\Windows Background.wav"
+        if not os.path.exists(self.wake_wav_path):
+            self.wake_wav_path = r"C:\Windows\Media\chimes.wav"
+
+        # Play the introductory audio chime synchronously here  
         try:
-            if self.gui:
-                print("[DEBUG] Setting state_manager state to Activating...", flush=True)
-                self.state_manager.set_state("idle", "Activating Smaran...")
-
-            # Prioritize a quick, highly recognizable wake-up audio and store the resolved path
-            self.wake_wav_path = r"C:\Windows\Media\Windows Unlock.wav"
-            if not os.path.exists(self.wake_wav_path):
-                self.wake_wav_path = r"C:\Windows\Media\Windows Logon.wav"
-            if not os.path.exists(self.wake_wav_path):
-                self.wake_wav_path = r"C:\Windows\Media\Windows Background.wav"
-            if not os.path.exists(self.wake_wav_path):
-                self.wake_wav_path = r"C:\Windows\Media\chimes.wav"
-
-            print(f"[DEBUG] Attempting to play intro audio: {self.wake_wav_path}", flush=True)
-            # Play the introductory audio chime synchronously here  
-            try:
-                import winsound
-                winsound.PlaySound(self.wake_wav_path, winsound.SND_FILENAME)
-                print("[DEBUG] Intro audio play completed", flush=True)
-            except Exception as e:
-                print(f"Error in intro audio: {e}", flush=True)
-                
-            greeting = "I have been activated, boss. ready to serve you."
-            print("[DEBUG] Calling self.speak...", flush=True)
-            self.speak(greeting, "Speaking greeting...")
-            print("[DEBUG] self.speak returned. Calling start_active_listening...", flush=True)
-            self.start_active_listening()
-            print("[DEBUG] start_active_listening completed successfully", flush=True)
+            import winsound
+            winsound.PlaySound(self.wake_wav_path, winsound.SND_FILENAME)
         except Exception as e:
-            import traceback
-            print(f"[DEBUG ERROR] Exception in initialize_assistant:\n{traceback.format_exc()}", flush=True)
+            print(f"Error in intro audio: {e}", flush=True)
+            
+        greeting = "I have been activated, boss. ready to serve you."
+        self.speak(greeting, "Speaking greeting...")
+        self.start_active_listening()
 
     def speak(self, text, task_desc=None): 
         """Helper to speak text — mutes mic during TTS to prevent audio feedback echo loops"""
