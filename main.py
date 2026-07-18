@@ -392,7 +392,8 @@ class SmaranCore:
             "word", "term", "summary", "summarize", "forecast", "weather", "info", "information",
             "headline", "headlines", "detail", "details", "please", "pls", "can", "you", "could", "would",
             "and", "or", "but", "our", "my", "your", "his", "her", "their", "its", "us", "them", "here", "there",
-            "it", "this", "that", "some", "any", "all", "out", "when", "time"
+            "it", "this", "that", "some", "any", "all", "out", "when", "time",
+            "today", "tomorrow", "tonight", "now", "yesterday", "todya", "tody", "tommorow", "toda", "day"
         }
         
         # Loop to strip fillers from start and end, leaving at least one word
@@ -1027,7 +1028,7 @@ class SmaranCore:
             print(f"[INTEL MODE] Response from {agent_executed} invalid/error. Entering Fallback Strategy (Gemini Flash)...")
             try:
                 print(f"[INTEL MODE] Querying Gemini as central fallback...")
-                response = self.gemini_agent.query_with_history(resolved_query, self.intel_history)
+                response = self.gemini_agent.query_with_history(resolved_query, self.intel_history, is_fallback=True)
                 agent_executed = "GeminiAgent"
                 is_valid = self._validate_response(response)
             except Exception as e:

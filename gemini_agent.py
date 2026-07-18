@@ -271,7 +271,7 @@ class GeminiAgent:
         except Exception:
             return "Sorry boss, that service is currently unavailable."
 
-    def query_with_history(self, user_text: str, history: list) -> str:
+    def query_with_history(self, user_text: str, history: list, is_fallback: bool = False) -> str:
         """
         Intelligence Mode query — sends conversation history alongside the message
         so Gemini can maintain multi-turn context with Google Search grounding.
@@ -291,10 +291,21 @@ class GeminiAgent:
                         "role": role,
                         "parts": [{"text": content}]
                     })
+            
+            # Override prompt if running in fallback mode to force Gemini to answer directly
+            config = self._config
+            if is_fallback and self._config:
+                fallback_prompt = _SYSTEM_PROMPT + "\n\nOVERRIDE: You are currently running in FALLBACK mode because a specialized agent failed to respond. You MUST answer the query directly yourself. Do not redirect the user or tell them another agent handles it."
+                config = types.GenerateContentConfig(
+                    system_instruction=fallback_prompt,
+                    temperature=0.2,
+                    max_output_tokens=1000,
+                    tools=self._config.tools
+                )
                     
             chat = self._client.chats.create(
                 model=self.MODEL,
-                config=self._config,
+                config=config,
                 history=formatted_history
             )
             
