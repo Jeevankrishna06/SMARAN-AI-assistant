@@ -207,7 +207,7 @@ class SmaranCore:
             is_start_wake = any(w in spoken_text for w in ["start smaran", "start smart", "start summer", "start summary", "start someone", "start marine", "start maran"])
             is_activate_wake = any(w in spoken_text for w in ["activate smaran","activate smart","activate smar","activate summer","activate someone","activate smaru","activate maran","activate marine"])
             is_get_up_wake = any(w in spoken_text for w in ["get up smaran","get up smart","get up summer","get up summary","get up someone","get up smaru","get up maran","get up marine"])
-            case is_wake_name or is_prefixed_wake or is_wake_up or is_start_wake or is_activate_wake or is_get_up_wake:
+            if is_wake_name or is_prefixed_wake or is_wake_up or is_start_wake or is_activate_wake or is_get_up_wake:
                 print("Wake word detected. Activating Smaran...")
                 self.wake_triggered = True
                 
@@ -530,7 +530,8 @@ class SmaranCore:
         text = re.sub(r'\[citation\]', '', text)
         text = re.sub(r'<[^>]*>', '', text)
         text = " ".join(text.split())
-        
+        #line 526-532 is used to split the text into sentences and limit the output to a maximum of 6 sentences for voice output. It uses a regular expression to split the text at sentence-ending punctuation (periods, exclamation marks, or question marks) followed by whitespace.
+        #  The resulting sentences are stripped of leading/trailing whitespace and any empty strings are removed. If there are more than 6 sentences, only the first 6 are kept and joined back into a single string for output.
         sentences = re.split(r'(?<=[.!?])\s+', text)
         sentences = [s.strip() for s in sentences if s.strip()]
         if len(sentences) > 6:
@@ -552,7 +553,8 @@ class SmaranCore:
         for pattern in filler_patterns:
             text = re.sub(pattern, ' ', text)
         return re.sub(r'\s+', ' ', text).strip()
-
+#line 535-555 performs preprocessing on the user input to normalize it for local scoring.
+#  It converts the text to lowercase, removes punctuation, and replaces multiple spaces with a single space. It also removes common filler phrases that do not contribute to the intent of the query, such as "can you please" or "i want to know". The final result is a cleaned and normalized string that can be used for further processing in the router logic.
     def _resolve_context(self, user_input: str, intent: str) -> tuple[str, str]:
         """
         Resolves pronouns in the user_input using self.intel_context if available.
@@ -639,6 +641,7 @@ class SmaranCore:
                 r"weather today in\s+(.+)",
             ]
             city = None
+            if not city: city = "bengaluru"
             for pattern in patterns:
                 match = re.search(pattern, cleaned_text)
                 if match:
@@ -652,6 +655,9 @@ class SmaranCore:
             cleaned_text = query.lower().strip()
             patterns = [
                 r"tell me the meaning of\s+(.+)",
+                r"tell the definition of\s+(.+)",
+                r"tell the meaning of\s+(.+)",
+                r"tell the pronunciation of\s+(.+)",
                 r"meaning of the\s+(.+)",
                 r"definition of the\s+(.+)",
                 r"pronunciation of the\s+(.+)",
@@ -694,6 +700,10 @@ class SmaranCore:
                 r"give me latest news about\s+(.+)",
                 r"give me news on\s+(.+)",
                 r"give me news about\s+(.+)",
+                r"tell the latest news from the world of \s+(.+)",
+                r"tell the latest news from the world about \s+(.+)",
+                r"tell the latest news from the world of\s+(.+)",
+                r"tell the latest news from the world about\s+(.+)",
                 r"news about\s+(.+)",
                 r"news on\s+(.+)",
                 r"news of\s+(.+)",
@@ -724,14 +734,33 @@ class SmaranCore:
                 topic = cleaned_text
             return self._clean_extracted_entity(topic)
             
-        elif intent_lower in ("research", "wikipedia"):
+        elif intent_lower == ("research", "wikipedia"):
             topic = query.lower()
             wiki_removals = [
-                "what is the", "what is", "what's the","who is",
-                "search wikipedia for", "wikipedia for", "wikipedia of",
-                "search wiki for", "wiki for", "wiki of",
-                "wikipedia", "wiki", "on wiki", "on wikipedia",
-                "tell me about", "look up", "search for", "get me","give me information about", "give me info about"
+                r"what is the \s+(.+)",
+                r"what is \s+(.+)",
+                r"what's the \s+(.+)",
+                r"who is \s+(.+)",
+                r"search wikipedia for \s+(.+)",
+                r"wikipedia for \s+(.+)",
+                r"wikipedia of \s+(.+)",
+                r"search wiki for \s+(.+)",
+                r"wiki for \s+(.+)",
+                r"wiki of \s+(.+)",
+                r"wikipedia",
+                r"wiki",
+                r"on wiki",
+                r"on wikipedia",
+                r"tell me about \s+(.+)",
+                r"look up \s+(.+)",
+                r"search for \s+(.+)",
+                r"get me \s+(.+)",
+                r"give me information about \s+(.+)",
+                r"give me info about \s+(.+)",
+                r"give me intel about \s+(.+)",
+                r"give me intel on \s+(.+)",
+                r"research about \s+(.+)",
+                r"research on \s+(.+)"
             ]
             wiki_removals.sort(key=len, reverse=True)
             for w in wiki_removals:
@@ -743,33 +772,38 @@ class SmaranCore:
             if "explain " in text:
                 topic = text.split("explain ")[-1].strip().rstrip('?.!')
                 return self._clean_extracted_entity(topic)
-            if "summarize " in text:
+            elif "summarize " in text:
                 target_text = text.split("summarize ")[-1].strip()
                 return self._clean_extracted_entity(target_text)
+            elif "why is" in text:
+                topic = text.split("why is")[-1].strip().rstrip('?.!')
+                return self._clean_extracted_entity(topic)
+            elif "how does" in text:
+                topic = text.split("how does")[-1].strip().rstrip('?.!')
+                return self._clean_extracted_entity(topic)
+            else:
             return self._clean_extracted_entity(query)
-            
-        return self._clean_extracted_entity(query)
 
     def _score_intelligence_agents(self, normalized_query: str) -> dict:
         """Scores each specialized intelligence agent using local weighted keywords."""
         phrase_weights = {
             "weather": {
-                "weather": 1, "temperature": 1, "rain": 1, "forecast": 1,
-                "climate": 1, "humidity": 1, "sunrise": 1, "sunset": 1, "wind": 1, "weather summary": 1,
+                "weather": 3, "temperature": 2, "rain": 2, "forecast": 1,
+                "climate": 1, "humidity": 1, "sunrise": 2, "sunset": 2, "wind": 1, "weather summary": 3,
             },
             "dictionary": {
-                "define": 1, "definition": 1, "meaning": 1, "dictionary": 1,
+                "define": 3, "definition": 2, "meaning": 2, "dictionary": 1,
                 "mean": 1, "word": 1, "pronounce": 1, "pronunciation": 1,
             },
             "wikipedia": {
-                "who is": 1, "who was": 1, "tell me about": 1, "history of": 1,
-                "information about": 1, "research": 1, "wikipedia": 1, "wiki": 1, "open wikipedia": 1,
+                "who is": 3, "who was": 2, "tell me about": 2, "history of": 1,
+                "information about": 3, "research": 2, "wikipedia": 1, "wiki": 1, "open wikipedia": 1,
                 "search wikipedia": 1,
             },
             "news": {
-                "news": 1, "latest": 1, "headline": 1, "headlines": 1, "current events": 1, "geopolitics": 1, "sports": 1,
-                "breaking": 1, "update": 1, "updates": 1, "fields": 1, "sport": 1, "technology": 1, "business": 1, "ai": 1,
-                "artificial intelligence": 1, "economy": 1, "finance": 1, "health": 1, "science": 1,
+                "news": 3, "latest": 2, "headline": 1, "headlines": 1, "current events": 1, "geopolitics": 1, "sports": 2,
+                "breaking": 1, "update": 1, "updates": 1, "fields": 1, "sport": 2, "technology": 2, "business": 2, "ai": 2,
+                "artificial intelligence": 2, "economy": 2, "finance": 2, "health": 2, "science": 2,
             },
             "reasoning": {
                 "gemini": 1, "explain": 1, "compare": 1, "summarize": 1, "predict": 1, "analyze": 1, "stats": 1, "statistics": 1, "data": 1,
