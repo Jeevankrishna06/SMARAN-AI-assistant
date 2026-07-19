@@ -4,7 +4,9 @@ import re
 import threading
 import time
 import vulture
+import winsound 
 import speech_recognition as sr
+from difflib import SequenceMatcher
 from os_controller import OSController
 from voice_engine import SmaranVoice
 from smaran_brain import SmaranBrain
@@ -32,7 +34,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
-class DualStream:
+class Stream:
     def __init__(self, original_stream, log_file_path):
         self.original_stream = original_stream
         self.log_file_path = log_file_path
@@ -62,8 +64,8 @@ class DualStream:
 
 # Redirect stdout and stderr to both console and system log file
 log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "smaran_system.log")
-sys.stdout = DualStream(sys.stdout, log_file_path)
-sys.stderr = DualStream(sys.stderr, log_file_path)
+sys.stdout = Stream(sys.stdout, log_file_path)
+sys.stderr = Stream(sys.stderr, log_file_path)
 
 class SmaranCore:
     def __init__(self):
@@ -96,7 +98,7 @@ class SmaranCore:
             print(f"microphone seems unavailable: {e}")
             self.mic = None
             
-        self.gui = None #because GUI is launched on main thread, we initialize it here but it will be set in launch_visual_console()
+        self.gui = None #because GUI is launched/ on main thread, we initialize it here but it will be set in launch_visual_console()
         self.wake_triggered = False #what happens when it is set to true is that the passive radar will stop and the active listening will start
         self.stop_listening_fn = None
         self._mic_lock = threading.Lock()  # Prevents two listeners from opening the mic simultaneously
@@ -113,7 +115,7 @@ class SmaranCore:
             print("Radar System turned off...", flush=True)
             try:
                 fn(wait_for_stop=True)
-                print("✅ [RADAR DEACTIVATED] Radar System  fully stopped.", flush=True) # what it does is that it prints a confirmation message indicating that the passive radar listener has been successfully stopped and the microphone is now released for other uses.
+                print(" Radar System  fully stopped.", flush=True) # what it does is that it prints a confirmation message indicating that the passive radar listener has been successfully stopped and the microphone is now released for other uses.
             except Exception as e:
                 print(f"Radar Error: {e}", flush=True)
 
@@ -137,7 +139,7 @@ class SmaranCore:
             # Use a fresh mic instance for calibration only — separate from the one used for listening
             calib_mic = sr.Microphone()
             with calib_mic as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=1.25)
+                self.recognizer.adjust_for_ambient_noise(source, duration=1.25) 
         except Exception as e:
             print(f"⚠️ RADAR Error: {e}")
 
@@ -189,7 +191,7 @@ class SmaranCore:
             
         try:
             spoken_text = self.transcriber.transcribe(audio, mode="fast").lower()
-            print(f"Certain voice detected: '{spoken_text}'")
+            print(f"Certain voice detected: '{spoken_text}'") #prints what it heard
             
             # Flexible phonetic wake-word matching to handle model/mic variations
             name_matches = ["smaran", "samaran", "sumran", "smoran", "simran", "some run","smurren","smurrel","smarren", "somrun"]
@@ -202,8 +204,10 @@ class SmaranCore:
             
             # Check for wake up phrases
             is_wake_up = any(w in spoken_text for w in ["wake up", "wakeup", "way cup", "lake up", "make up", "weicup", "wakeupp"])
-            
-            if is_wake_name or is_prefixed_wake or is_wake_up:
+            is_start_wake = any(w in spoken_text for w in ["start smaran", "start smart", "start summer", "start summary", "start someone", "start marine", "start maran"])
+            is_activate_wake = any(w in spoken_text for w in ["activate smaran","activate smart","activate smar","activate summer","activate someone","activate smaru","activate maran","activate marine"])
+            is_get_up_wake = any(w in spoken_text for w in ["get up smaran","get up smart","get up summer","get up summary","get up someone","get up smaru","get up maran","get up marine"])
+            case is_wake_name or is_prefixed_wake or is_wake_up or is_start_wake or is_activate_wake or is_get_up_wake:
                 print("Wake word detected. Activating Smaran...")
                 self.wake_triggered = True
                 
@@ -222,7 +226,7 @@ class SmaranCore:
 
     def launch_visual_console(self):
         """Assembles the UI window on the main thread and starts background loops"""
-        self.gui = SmaranGUI(on_send_callback=self.pipeline, on_voice_change_callback=self.handle_voice_change)
+        self.gui = SmaranGUI(on_send_callback=self.pipeline, on_voice_change_callback=self.handle_voice_change) #self callback was defined in the class and it is used to handle the voice change event from the GUI while voice callback was defined in the GUI class and it is used to handle the voice change event from the GUI.
         self.state_manager = PandaStateManager(self.gui) # Centralized state manager 
         
         # Apply the default gender from GUI to SAPI on startup
@@ -238,28 +242,38 @@ class SmaranCore:
 
     def initialize_assistant(self):
         """Plays greeting and arms microphone sequentially"""
-        if self.gui:
-            self.state_manager.set_state("idle", "Activating Smaran...")
-
-        # Prioritize a quick, highly recognizable wake-up audio and store the resolved path
-        self.wake_wav_path = r"C:\Windows\Media\Windows Unlock.wav"
-        if not os.path.exists(self.wake_wav_path):
-            self.wake_wav_path = r"C:\Windows\Media\Windows Logon.wav"
-        if not os.path.exists(self.wake_wav_path):
-            self.wake_wav_path = r"C:\Windows\Media\Windows Background.wav"
-        if not os.path.exists(self.wake_wav_path):
-            self.wake_wav_path = r"C:\Windows\Media\chimes.wav"
-
-        # Play the introductory audio chime synchronously here  
+        print("[DEBUG] initialize_assistant thread started", flush=True)
         try:
-            import winsound
-            winsound.PlaySound(self.wake_wav_path, winsound.SND_FILENAME)
+            if self.gui:
+                print("[DEBUG] Setting state_manager state to Activating...", flush=True)
+                self.state_manager.set_state("idle", "Activating Smaran...")
+
+            # Prioritize a quick, highly recognizable wake-up audio and store the resolved path
+            self.wake_wav_path = r"C:\Windows\Media\Windows Unlock.wav"
+            if not os.path.exists(self.wake_wav_path):
+                self.wake_wav_path = r"C:\Windows\Media\Windows Logon.wav"
+            if not os.path.exists(self.wake_wav_path):
+                self.wake_wav_path = r"C:\Windows\Media\Windows Background.wav"
+            if not os.path.exists(self.wake_wav_path):
+                self.wake_wav_path = r"C:\Windows\Media\chimes.wav"
+
+            print(f"[DEBUG] Attempting to play intro audio: {self.wake_wav_path}", flush=True)
+            # Play the introductory audio chime synchronously here  
+            try:
+                winsound.PlaySound(self.wake_wav_path, winsound.SND_FILENAME)
+                print("[DEBUG] Intro audio play completed", flush=True)
+            except Exception as e:
+                print(f"Error in intro audio: {e}", flush=True)
+                
+            greeting = "I have been activated, boss. ready to serve you."
+            print("[DEBUG] Calling self.speak...", flush=True)
+            self.speak(greeting, "Speaking greeting...")
+            print("[DEBUG] self.speak returned. Calling start_active_listening...", flush=True)
+            self.start_active_listening()
+            print("[DEBUG] start_active_listening completed successfully", flush=True)
         except Exception as e:
-            print(f"Error in intro audio: {e}", flush=True)
-            
-        greeting = "I have been activated, boss. ready to serve you."
-        self.speak(greeting, "Speaking greeting...")
-        self.start_active_listening()
+            import traceback
+            print(f"[DEBUG ERROR] Exception in initialize_assistant:\n{traceback.format_exc()}", flush=True)
 
     def speak(self, text, task_desc=None): 
         """Helper to speak text — mutes mic during TTS to prevent audio feedback echo loops"""
@@ -285,7 +299,7 @@ class SmaranCore:
         Word-sequence check prevents 'activate intelligence' matching
         inside 'deactivate intelligence'.
         """
-        from difflib import SequenceMatcher
+
         spoken = spoken.lower().strip()
         target = target.lower().strip()
         # Full string match
@@ -346,19 +360,19 @@ class SmaranCore:
         if first_word in ACTIVATE_PREFIXES:
             for phrase in ACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "activate"
+                    return "activated"
         elif first_word in DEACTIVATE_PREFIXES :
             for phrase in DEACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "deactivate"
+                    return "deactivated"
         else:
-            # Unknown first word — try deactivate first, then activate
+            # Unknown first word — try deactivate first, then activate because deactivation is more urgent and should take precedence if both are present in the same phrase.
             for phrase in DEACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "deactivate"
+                    return "deactivated"
             for phrase in ACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "activate"
+                    return "activated"
         return None
 
     def _clean_extracted_entity(self, text: str) -> str:
@@ -381,8 +395,7 @@ class SmaranCore:
             "word", "term", "summary", "summarize", "forecast", "weather", "info", "information",
             "headline", "headlines", "detail", "details", "please", "pls", "can", "you", "could", "would",
             "and", "or", "but", "our", "my", "your", "his", "her", "their", "its", "us", "them", "here", "there",
-            "it", "this", "that", "some", "any", "all", "out", "when", "time",
-            "today", "tomorrow", "tonight", "now", "yesterday", "todya", "tody", "tommorow", "toda", "day"
+            "it", "this", "that", "some", "any", "all", "out", "when", "time"
         }
         
         # Loop to strip fillers from start and end, leaving at least one word
@@ -422,13 +435,13 @@ class SmaranCore:
         # 2. System Command Check
         sys_triggers = {
             "brave","chrome","opera","opera gx", "shutdown", "stop", "exit", "bye", "goodbye", 
-            "sleep", "goodnight", "timer", "clock", "countdown", "calculate", "compute", "solve", "type", "write",
+            "sleep", "goodnight","music","quote", "timer", "clock", "countdown", "calculate", "compute", "solve", "type", "write",
             "notepad", "calculator", "calc", "cmd", "explorer", "task manager", "volume", "mute"
         }
         is_open_cmd = (text.startswith("open ") or text.startswith("launch "))
-        if is_open_cmd or any(t in text_words for t in sys_triggers) or "set timer" in text or "countdown" in text or "give me a quote" in text:
+        if is_open_cmd or any(t in text_words for t in sys_triggers) or "set timer" in text or "countdown" in text or "give me a quote" in text or "play music" in text:
             if not any(w in text for w in ["wikipedia", "wiki", "weather", "news", "define", "definition", "meaning"]):
-                intent, confidence = "System Command", 0.9 
+                intent, confidence = "System Command", 0.9  
                 print(f"[INTEL]\nIntent: {intent}\nConfidence: {confidence}\n")
                 return intent, confidence
 
@@ -1017,7 +1030,7 @@ class SmaranCore:
             print(f"[INTEL MODE] Response from {agent_executed} invalid/error. Entering Fallback Strategy (Gemini Flash)...")
             try:
                 print(f"[INTEL MODE] Querying Gemini as central fallback...")
-                response = self.gemini_agent.query_with_history(resolved_query, self.intel_history, is_fallback=True)
+                response = self.gemini_agent.query_with_history(resolved_query, self.intel_history)
                 agent_executed = "GeminiAgent"
                 is_valid = self._validate_response(response)
             except Exception as e:
