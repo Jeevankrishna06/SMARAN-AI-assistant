@@ -1,0 +1,7 @@
+pyautogui
+pyttsx3
+pywin32
+comtypes
+Pillow
+ollama
+requests

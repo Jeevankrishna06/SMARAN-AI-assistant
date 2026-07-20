@@ -18,7 +18,6 @@ from news_agent import NewsAgent
 from gemini_agent import GeminiAgent
 from whisper_transcriber import WhisperTranscriber
 from dotenv import load_dotenv
-import env_loader
 
 
 # Path to the .env file is actually inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AGENT)\.env\.env)
