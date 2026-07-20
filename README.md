@@ -1,274 +1,279 @@
-# SMARAN - AI Desktop Assistant
+# 🐼 SMARAN – Voice-First Desktop AI Assistant
 
-## Overview
+> *"Smaran" is a Sanskrit word meaning **Remembrance** or **Memory**.*
 
-Smaran is a voice-first desktop assistant designed to combine desktop automation, intelligent query handling, workflow management, and computer vision into a single system.
+Smaran is a voice-first desktop AI assistant built to automate everyday computer tasks, provide intelligent assistance, and create personalized productivity environments through simple voice commands.
 
-The name **Smaran** comes from Sanskrit and means *remembrance* or *memory*.
-
-Smaran can be activated either through voice commands or clap detection and responds using speech, automation, intelligence agents, and vision-based controls.
+Unlike traditional chatbot-style assistants, Smaran combines **desktop automation**, **AI-powered reasoning**, **workflow modes**, and **computer vision** into a unified desktop ecosystem.
 
 ---
 
-# Wake System
+# 🎥 Demo
 
-Smaran supports two activation methods:
 
-### Voice Wake
-
-* Wake up Smaran
-* Wake up
-
-### Clap Wake
-
-* Detects hand claps using audio analysis.
-* Wakes the assistant without requiring speech.
-
-Once activated, Smaran appears as a Chibi Panda assistant with animated expressions and voice interaction.
 
 ---
 
-# Phase I - Automation Layer
+# ✨ Features
 
-The Automation Layer focuses on desktop control and productivity automation.
+## 🎙️ Voice Assistant
 
-### Assistant Functions
+* Wake phrase activation
+* Natural voice interaction
+* Local text-to-speech
+* Intelligent command execution
 
-* Greetings and introductions
-* Briefings
-* Quotes
-* Random number generation
-* Weather reports
+---
 
-### Desktop Automation
+## 💻 Desktop Automation
+
+Control your computer using voice commands.
+
+Examples include:
 
 * Open applications
-* Open websites
-* Browser automation
-* Search automation
-* Music playback
-* Video playback
-* Calculations
-* Notepad automation
-
-### Supported Browsers
-
-* Chrome
-* Brave
-* Opera GX
-* Microsoft Edge
-
-### Supported AI Platforms
-
-* ChatGPT
-* Gemini
-* Claude
-* Grok
-* Perplexity
-
-### Quiet Mode
-
-Suspends microphone listening until manually resumed.
+* Open browsers
+* Launch AI tools
+* Search the web
+* Play music
+* Play YouTube videos
+* Open and type into Notepad
+* Perform calculations
+* Weather updates
+* Random number generation
 
 ---
 
-# Phase II - Intelligence Layer
+## 🤖 Intelligence Layer
 
-The Intelligence Layer introduces agent-based intelligence.
+Smaran contains an optional Intelligence Mode that routes user queries to specialized AI agents.
 
-Activation:
+Current supported agents include:
+
+* 🌦 Weather Agent
+* 📖 Dictionary Agent
+* 📚 Wikipedia Agent
+* 📰 News Agent
+* 🧠 Gemini Reasoning Agent
+
+A confidence-based routing system determines which agent is best suited for each request before generating a response.
+
+---
+
+## 🎯 Workflow Modes
+
+Smaran can automatically prepare your desktop for different activities.
+
+### 📚 Study Mode
+
+* Opens study resources
+* Plays study music
+* Launches Gemini
+* Opens File Explorer
+* Creates a distraction-free workspace
+
+### 👨‍💻 Developer Mode
+
+* Opens VS Code
+* Opens Terminal
+* Launches Claude & Gemini
+* Starts coding music
+* Prepares a development workspace
+
+### 🎮 Fun Mode
+
+* Opens entertainment applications
+* Plays music
+* Sets break timers
+
+### 🧠 Deep Mode
+
+* Opens Notepad
+* Opens browser
+* Creates a writing and reflection environment
+
+---
+
+## ✋ Vision Mode *(Experimental)*
+
+Vision Mode introduces computer vision capabilities for desktop interaction.
+
+Current capabilities include:
+
+* Hand tracking
+* Gesture recognition
+* Cursor control
+* Mouse interaction
+
+---
+
+# 🏗️ Architecture
 
 ```text
-Activate Intelligence Mode
+User Voice
+      │
+      ▼
+Speech Recognition
+      │
+      ▼
+Command Processing
+      │
+      ├───────────────► Desktop Automation
+      │
+      ├───────────────► Intelligence Router
+      │                     │
+      │                     ├── Weather
+      │                     ├── Dictionary
+      │                     ├── Wikipedia
+      │                     ├── News
+      │                     └── Gemini
+      │
+      ▼
+Text-to-Speech
 ```
 
-Smaran uses a confidence-based routing system that determines which agent should handle a query.
-
-### Routing Flow
-
-```text
-User Query
-↓
-Weighted Scoring
-↓
-Confidence Evaluation
-↓
-Agent Selection
-↓
-Response Generation
-↓
-Voice Output
-```
-
-### Available Agents
-
-#### Weather Agent
-
-Provides:
-
-* Weather summaries
-* Temperature
-* Rain probability
-* Sunrise and sunset
-* Humidity
-* Wind speed
-
-#### Dictionary Agent
-
-Provides:
-
-* Definitions
-* Meanings
-* Pronunciations
-
-#### Wikipedia Agent
-
-Provides:
-
-* Research
-* Historical information
-* General knowledge
-
-#### News Agent
-
-Provides:
-
-* Current news
-* Topic-based news
-* Recent events
-
-#### Gemini Agent
-
-Provides:
-
-* Explanations
-* Comparisons
-* Decision support
-* General reasoning
-* Fallback intelligence
-
 ---
 
-# System Modes
+# 🛠️ Tech Stack
 
-Smaran includes workflow-focused environments.
-
-### Study Mode
-
-Creates a study environment by opening:
-
-* Clock
-* Study Music
-* Gemini
-* WhatsApp
-* File Explorer
-* Intelligence Mode
-
-### Developer Mode
-
-Creates a coding environment by opening:
-
-* VS Code
-* Terminal
-* Claude
-* Gemini
-* Coding Music
-* Intelligence Mode
-
-### Fun Mode
-
-Creates an entertainment environment by opening:
-
-* Opera GX
-* YouTube
-* YouTube Music
-* Clock
-
-### Deep Mode
-
-Creates a reflection environment by opening:
-
-* Chrome
-* YouTube
-* Notepad
-* Clock
-
----
-
-# Vision Mode
-
-Vision Mode enables touchless desktop control through hand gestures.
-
-### Features
-
-* Hand Tracking
-* Cursor Control
-* Gesture Recognition
-* Mouse Interaction
-
-### Supported Gestures
-
-#### Single Hand
-
-* Cursor Movement
-* Left Click
-* Right Click
-* Drag
-* Select
-
-#### Two Hands
-
-* Open Selected Item
-* Close Active Window
-
-#### System Control
-
-* Exit Vision Mode
-
----
-
-# Technology Stack
-
-### Language
+### Programming Language
 
 * Python
 
-### APIs
+### AI & APIs
 
-* Groq API
-* Google Gemini API
-* OpenWeatherMap API
+* Groq
+* Google Gemini
+* OpenWeather
 * Wikipedia API
-* GNews API
 * Free Dictionary API
-
-### Computer Vision
-
-* MediaPipe
-* OpenCV
+* GNews API
 
 ### Automation
 
 * PyAutoGUI
 * PyWin32
+* Webbrowser
+* Subprocess
 
-### Speech Processing
+### Computer Vision
+
+* OpenCV
+* MediaPipe
+
+### Audio
 
 * SpeechRecognition
 * PyAudio
 * pyttsx3
 
+### Core Libraries
+
+* NumPy
+* Requests
+* Pillow
+
 ---
 
-# Design Philosophy
+# 📂 Project Structure
 
-Smaran follows a Free-First Development Philosophy.
+```text
+SMARAN/
+│
+├── assets/
+├── automation/
+├── intelligence/
+├── vision/
+├── gui/
+├── utilities/
+├── main.py
+└── README.md
+```
 
-* Use free APIs whenever possible.
-* Use specialized agents instead of a single model.
-* Separate automation from intelligence.
-* Focus on workflow enhancement rather than chatbot-style interaction.
+*(Folder names may vary as the project evolves.)*
 
-The goal of Smaran is not to be a chatbot.
+---
 
-The goal is to act as a voice-first desktop assistant that combines automation, intelligence, and computer vision into a unified ecosystem.
+# 🚀 Getting Started
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Jeevankrishna06/SMARAN-AI-assistant.git
+```
+
+Navigate to the project:
+
+```bash
+cd SMARAN-AI-assistant
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the project:
+
+```bash
+python main.py
+```
+
+---
+
+# 📈 Roadmap
+
+### ✅ Phase I
+
+* Voice assistant
+* Desktop automation
+* Workflow modes
+* GUI
+* Voice interaction
+
+### 🚧 Phase II
+
+* Multi-agent intelligence
+* Intelligent routing
+* API integrations
+
+### 🔬 Phase III
+
+* Enhanced computer vision
+* Additional workflow modes
+* Expanded automation capabilities
+
+---
+
+# 💡 Why I Built Smaran
+
+I wanted to explore how modern AI systems can go beyond answering questions and instead become practical desktop companions.
+
+Smaran started as a personal learning project and has gradually evolved into a platform for experimenting with:
+
+* AI agents
+* Desktop automation
+* Human-computer interaction
+* Workflow optimization
+* Computer vision
+
+As a first-year AI & Machine Learning student, this project has been one of my primary ways of learning by building.
+
+---
+
+# ⚠️ Disclaimer
+
+Smaran is an actively evolving project. New features, improvements, and architectural changes will continue to be added over time.
+
+---
+
+# 📬 Feedback
+
+If you have suggestions, ideas, or feedback, feel free to open an issue or connect with me on LinkedIn.
+
+Contributions, discussions, and constructive feedback are always welcome.
+
+---
+
+## ⭐ If you found this project interesting, consider giving it a star!
