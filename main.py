@@ -18,7 +18,7 @@ from news_agent import NewsAgent
 from gemini_agent import GeminiAgent
 from whisper_transcriber import WhisperTranscriber
 from dotenv import load_dotenv
-
+import env_loader
 
 # Path to the .env file is actually inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AGENT)\.env\.env)
 dotenv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env", ".env")
@@ -361,7 +361,7 @@ class SmaranCore:
             for phrase in ACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
                     return "activate"
-        elif first_word in DEACTIVATE_PREFIXES:
+        elif first_word in DEACTIVATE_PREFIXES :
             for phrase in DEACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
                     return "deactivate"
@@ -1380,8 +1380,8 @@ class SmaranCore:
                 self.gui.root.after(600, self.start_active_listening)
                 return
             else:
-                # Still in quiet mode — process typed command normally through the pipeline
-                pass 
+                pass
+                # Still in quiet mode — process typed command normally through the pipeline 
         # ──────────────────────────────────────────────────────────────────
 
         # Stop listening if we were actively listening, since the user is typing
@@ -1473,9 +1473,7 @@ class SmaranCore:
             if self.gui:
                 self.state_manager.set_state("quiet")
             self.speak(
-                "Entering Quiet Mode, boss. Microphone is now suspended. "
-                "Use the text box and type 'resume' to restore listening.",
-                "Quiet Mode"
+                "Entering Quiet Mode, boss. Microphone is suspended. "
             )
             if self.gui:
                 self.state_manager.set_state("quiet")
@@ -1484,7 +1482,7 @@ class SmaranCore:
 
         if quiet_cmd == "exit_quiet":
             if not self.quiet_mode:
-                self.speak("Quiet Mode is not active, boss.", "Automation")
+                self.speak("Quiet Mode is inactive, boss.", "Automation")
                 self.gui.root.after(600, self.start_active_listening)
             else:
                 self.quiet_mode = False
@@ -1500,7 +1498,7 @@ class SmaranCore:
         # Always checked first -- works from both Automation and Intelligence Mode.
         intel_cmd = self._check_intel_command(text)
 
-        if intel_cmd in ("activate", "activated"):
+        if intel_cmd == "activate":
             if self.intelligence_mode:
                 # Already in intelligence mode
                 self.speak("Intelligence Mode is already active, boss.", "Intelligence Mode")
@@ -1521,7 +1519,7 @@ class SmaranCore:
             self.gui.root.after(600, self.start_active_listening)
             return
 
-        if intel_cmd in ("deactivate", "deactivated"):
+        if intel_cmd == "deactivate":
             if not self.intelligence_mode:
                 self.speak("Automation Mode is already active, boss.", "Automation")
             else:
