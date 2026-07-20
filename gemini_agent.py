@@ -1,14 +1,6 @@
 import os
 import time
-from dotenv import load_dotenv
-
-# Path to the .env file is inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AUTOMATION AGENT)\.env\.env)
-dotenv_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-dotenv_file = os.path.join(dotenv_dir, ".env")
-if os.path.exists(dotenv_file):
-    load_dotenv(dotenv_file)
-else:
-    load_dotenv()
+import env_loader
 
 try:
     from google import genai

@@ -2,9 +2,7 @@ import os
 import requests
 import time
 from datetime import datetime
-from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env", ".env"), override=False)
-load_dotenv(override=False)  # Fallback to standard .env
+import env_loader
 
 class WeatherAgent:
     SERVICE_ERROR = "Sorry boss, I couldn't retrieve that information right now."
@@ -73,7 +71,7 @@ class WeatherAgent:
         if city_clean in self._geo_cache:
             return self._geo_cache[city_clean]
 
-        url = os.getenv("URL_WEATHER")
+        url = os.getenv("URL_WEATHER") or "https://geocoding-api.open-meteo.com/v1/search"
         params = {
             "name": city.strip(),
             "count": 1,

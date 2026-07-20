@@ -18,6 +18,7 @@ from news_agent import NewsAgent
 from gemini_agent import GeminiAgent
 from whisper_transcriber import WhisperTranscriber
 from dotenv import load_dotenv
+import env_loader
 
 
 # Path to the .env file is actually inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AGENT)\.env\.env)
@@ -360,19 +361,19 @@ class SmaranCore:
         if first_word in ACTIVATE_PREFIXES:
             for phrase in ACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "activated"
-        elif first_word in DEACTIVATE_PREFIXES :
+                    return "activate"
+        elif first_word in DEACTIVATE_PREFIXES:
             for phrase in DEACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "deactivated"
+                    return "deactivate"
         else:
             # Unknown first word — try deactivate first, then activate because deactivation is more urgent and should take precedence if both are present in the same phrase.
             for phrase in DEACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "deactivated"
+                    return "deactivate"
             for phrase in ACTIVATE_PHRASES:
                 if self._fuzzy_matches(text, phrase):
-                    return "activated"
+                    return "activate"
         return None
 
     def _clean_extracted_entity(self, text: str) -> str:
@@ -782,7 +783,7 @@ class SmaranCore:
                 topic = text.split("how does")[-1].strip().rstrip('?.!')
                 return self._clean_extracted_entity(topic)
             else:
-            return self._clean_extracted_entity(query)
+                return self._clean_extracted_entity(query)
 
     def _score_intelligence_agents(self, normalized_query: str) -> dict:
         """Scores each specialized intelligence agent using local weighted keywords."""
@@ -806,8 +807,8 @@ class SmaranCore:
                 "artificial intelligence": 2, "economy": 2, "finance": 2, "health": 2, "science": 2,
             },
             "reasoning": {
-                "gemini": 1, "explain": 1, "compare": 1, "summarize": 1, "predict": 1, "analyze": 1, "stats": 1, "statistics": 1, "data": 1,
-                "versus": 1, " vs ": 1, "should i": 1, "which is better": 1,
+                "gemini": 1, "explain": 3, "compare": 1, "summarize": 1, "predict": 1, "analyze": 1, "stats": 1, "statistics": 1, "data": 1,
+                "versus": 1, " vs ": 1, "should i": 1, "which is better": 1,"why is": 2, "how does": 2, "how do": 1, "what is the reason for": 1, "what is the cause of": 1,
             },
         }
 
@@ -1007,7 +1008,7 @@ class SmaranCore:
         elif normalized_query.startswith("hey smaran"):
             selected_agent = "reasoning"
             selected_agent_confidence = 1.0
-            routing_reason = "Direct routing due to 'hey smaran' prefix"
+            routing_reason = "activating reasoning mode via 'hey smaran' prefix"
         else:
             scores = self._score_intelligence_agents(normalized_query)
             winner, highest_score, second_highest_score, confidence_gap = self._select_agent_by_confidence(scores)
@@ -1019,7 +1020,7 @@ class SmaranCore:
             else:
                 routing_reason = "Ambiguous local score; classified with Gemini"
                 selected_agent = self._classify_with_gemini(resolved_query)
-                selected_agent_confidence = 0.8
+                selected_agent_confidence = 0.5
                 
         agent_names = {
             "weather": "WeatherAgent",
@@ -1061,7 +1062,7 @@ class SmaranCore:
         is_valid = self._validate_response(response)
         
         if not is_valid:
-            print(f"[INTEL MODE] Response from {agent_executed} invalid/error. Entering Fallback Strategy (Gemini Flash)...")
+            print(f"{agent_executed} resulted in invalid/error. Entering 2nd strategy")
             try:
                 print(f"[INTEL MODE] Querying Gemini as central fallback...")
                 response = self.gemini_agent.query_with_history(resolved_query, self.intel_history)
@@ -1125,17 +1126,17 @@ class SmaranCore:
                             winsound.PlaySound(wav, winsound.SND_FILENAME | winsound.SND_NODEFAULT)
                             return
                     # Last resort fallback
-                    winsound.Beep(1800, 120)
+                    winsound.Beep(2000, 120)
 
                 elif chime_type == "wake":
                     for wav in WAV_CANDIDATES:
                         if os.path.exists(wav):
                             winsound.PlaySound(wav, winsound.SND_FILENAME | winsound.SND_NODEFAULT)
                             return
-                    winsound.Beep(2000, 100)
+                    winsound.Beep(3000, 100)
 
             except Exception as e:
-                print(f"[CHIME ERROR] Could not play chime: {e}")
+                print(f"Could Not Play Chime: {e}")
 
         threading.Thread(target=_play, daemon=True).start()
 
@@ -1186,9 +1187,9 @@ class SmaranCore:
                 self.active_listening_callback,
                 phrase_time_limit=25
             )
-            print("🎤 [MIC ARMED] Background listener is active.")
+            print("Active in background.")
         except Exception as e:
-            print(f"⚠️ [MIC ERROR] Could not start background listening: {e}")
+            print(f"Could not start background listening: {e}")
             if self.gui:
                 self.state_manager.set_state("error")
         finally:
@@ -1198,14 +1199,14 @@ class SmaranCore:
         """Disarms active microphone listener to prevent concurrent audio conflict"""
         fn = self.stop_listening_fn
         if fn is not None:
-            print("🔇 [MIC DEACTIVATED] Stopping listener...")
+            print("Mic is Inactive.Stopping listener...")
             self.stop_listening_fn = None
             try:
                 # wait_for_stop=True ensures the internal thread fully exits and releases
                 # the mic context manager before we try to open it again
                 fn(wait_for_stop=True)
             except Exception as e:
-                print(f"[MIC STOP WARNING] {e}")
+                print(f"Could not stop background listening: {e}")
 
 
     def _check_quiet_command(self, text: str):
@@ -1213,8 +1214,8 @@ class SmaranCore:
         Checks if the text is a Quiet Mode activation or deactivation command.
         Returns: 'enter_quiet' | 'exit_quiet' | None
 
-        Voice Activation : 'quiet', 'go quiet', 'enter quiet mode', 'quiet mode'
-        Text / Voice Exit: 'resume', 'resume listening', 'exit quiet mode'
+        Voice Activation : 'quiet', 'go quiet', 'enter quiet mode', 'quiet mode','silence mode','silence','go silent'
+        Text / Voice Exit: 'resume', 'resume listening', 'exit quiet mode','exit quiet','disable quiet mode','stop quiet mode'
         Uses fuzzy matching to handle Whisper transcription errors.
         """
         from difflib import SequenceMatcher
@@ -1227,6 +1228,7 @@ class SmaranCore:
         activate_phrases = [
             "quiet", "go quiet", "enter quiet mode",
             "go to quiet", "quiet mode", "silence mode",
+            "silence", "go silent"
         ]
 
         def fuzzy(a, b, threshold=0.85):
@@ -1248,7 +1250,7 @@ class SmaranCore:
         return None
 
     def active_listening_callback(self, recognizer, audio):
-        """Triggered by background listener thread when a phrase is captured"""
+        """Triggered by background listener thread when a phrase is captured""" #what this means is 
         # Guard 1: Drop audio captured DURING TTS playback
         if self.is_speaking:
             print("[MIC GUARD] Discarding audio captured during TTS playback.")
@@ -1272,7 +1274,7 @@ class SmaranCore:
         self.stop_active_listening()
         
         try:
-            print("👂 [PROCESSING ACTIVE DIRECTIVE] Recognizing speech...")
+            print(" [PROCESSING ACTIVE DIRECTIVE] Recognizing speech...")
             
             command_text = self.transcriber.transcribe(audio, mode="accurate").lower()
             # Strip trailing punctuation Whisper always adds (e.g. "open notepad." -> "open notepad")
@@ -1336,7 +1338,7 @@ class SmaranCore:
                 "the", "a", "an", "and", "but", "or",
             }
             if len(words_only) == 1 and words_only[0] in ECHO_WORDS:
-                print(f"[NOISE FILTER] Single-word echo artifact: '{words_only[0]}'. Discarding.")
+                print(f"Noise Echo: '{words_only[0]}'. Discarding.")
                 if self.gui:
                     self.state_manager.set_state("listening", "Listening...")
                 self.gui.root.after(400, self.start_active_listening)
@@ -1354,7 +1356,7 @@ class SmaranCore:
             if self.gui:
                 self.state_manager.set_state("listening")
             # Restart quickly — 800ms is enough for Smaran to finish speaking the error message
-            self.gui.root.after(800, self.start_active_listening)
+            self.gui.root.after(800, self.start_active_listening) #this is a callback to restart the listener after a timeout
         except Exception as e:
             print(f"⚠️ [MIC ERROR] {e}")
             if self.gui:
@@ -1380,7 +1382,7 @@ class SmaranCore:
                 return
             else:
                 # Still in quiet mode — process typed command normally through the pipeline
-                pass
+                pass 
         # ──────────────────────────────────────────────────────────────────
 
         # Stop listening if we were actively listening, since the user is typing
@@ -1404,47 +1406,47 @@ class SmaranCore:
                 if parameter and parameter != "none":
                     if parameter.startswith("youtube "):
                         return "Opening YouTube..."
-                    else:
+                    elif parameter.startswith("search "):
                         return "Searching Google..."
                 return f"Opening {display_browser}..."
             elif target == "notepad":
-                return "Opening Notepad..."
+                return "Opening Notepad boss.."
             elif target == "calculator":
-                return "Opening Calculator..."
+                return "Opening Calculator,boss ..."
             elif target == "cmd":
-                return "Opening Command Prompt..."
-            elif target == "explorer":
-                return "Opening File Explorer..."
+                return "Opening Terminal boss ..."
+            elif target == "explorer" or target == "file explorer":
+                return "Opening File Explorer,boss..."
             elif target == "task manager":
-                return "Opening Task Manager..."
+                return "Opening Task Manager,boss..."
             else:
                 return f"Opening {target.capitalize()}..."
         elif action == "system_control":
             if target == "volume_up":
-                return "Increasing Volume..."
+                return "Increasing Volume boss..."
             elif target == "volume_down":
-                return "Decreasing Volume..."
+                return "Decreasing Volume boss..."
             elif target == "mute":
-                return "Muting Audio..."
-            return "Adjusting Volume..."
+                return "Muting Audio, boss..."
+            return "Adjusting Volume ,boss..."
         elif action == "shutdown":
-            return "Shutting Down..."
+            return "Shutting Down ,boss..."
         elif action == "weather_scanner":
-            return "Scanning Weather..."
-        elif action == "morning_briefing":
-            return "Preparing Briefing..."
+            return "Scanning Weather boss..."
+        elif action == "briefing":
+            return "Preparing your Briefing , boss ..."
         elif action == "ecosystem_workspace":
-            return "Launching Workspaces..."
+            return "activating workspace,boss..."
         elif action == "youtube_music":
-            return "Opening YouTube Music..."
+            return "Opening YouTube Music,boss..."
         elif action == "random_generator":
-            return "Generating Value..."
+            return "Generating Value for you boss..."
         elif action == "wisdom_vault":
-            return "Retrieving Quote..."
+            return "seeking a  Quote from your vault, boss..."
         elif action == "countdown_timer":
-            return "Calculating Countdown..."
+            return "Calculating remaining time, boss..."
         elif action == "calculator_compute":
-            return "Computing Result..."
+            return "Computing Result, boss..."
         elif action == "grok_query":
             return "Thinking..."
         return "Executing..."
@@ -1499,7 +1501,7 @@ class SmaranCore:
         # Always checked first -- works from both Automation and Intelligence Mode.
         intel_cmd = self._check_intel_command(text)
 
-        if intel_cmd == "activate":
+        if intel_cmd in ("activate", "activated"):
             if self.intelligence_mode:
                 # Already in intelligence mode
                 self.speak("Intelligence Mode is already active, boss.", "Intelligence Mode")
@@ -1520,7 +1522,7 @@ class SmaranCore:
             self.gui.root.after(600, self.start_active_listening)
             return
 
-        if intel_cmd == "deactivate":
+        if intel_cmd in ("deactivate", "deactivated"):
             if not self.intelligence_mode:
                 self.speak("Automation Mode is already active, boss.", "Automation")
             else:

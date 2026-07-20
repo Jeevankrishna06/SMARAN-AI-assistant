@@ -1,5 +1,7 @@
+import os
 import requests
 import time
+import env_loader
 
 class DictionaryAgent:
     def __init__(self):
@@ -26,7 +28,7 @@ class DictionaryAgent:
         """
         word_clean = word.strip().lower()
         if not word_clean:
-            return None
+            raise ValueError("Empty word provided")
 
         if word_clean in self._word_cache:
             data = self._word_cache[word_clean]
@@ -35,7 +37,8 @@ class DictionaryAgent:
                 raise ValueError("Word not found")
             return data
 
-        url = os.getenv("URL_DICTIONARY").format(word_clean=word_clean)
+        url_template = os.getenv("URL_DICTIONARY") or "https://api.dictionaryapi.dev/api/v2/entries/en/{word_clean}"
+        url = url_template.format(word_clean=word_clean)
         try:
             response = self._robust_get(url)
             

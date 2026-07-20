@@ -3,39 +3,40 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+$RECYCLE.BIN/
 
-# Virtual Environment
+# Environment Variables & Secret Files
+.env
+.env/
+.env/*
+.env.*
+*.env
+config.json
+secrets.json
+credentials.json
+
+# Virtual Environments
 .venv/
 venv/
 env/
+vision_venv/
 
-# Environment Variables
-.env
-
-# VS Code
+# IDE & OS
 .vscode/
-
-# PyCharm
 .idea/
-
-# Logs
-*.log
-
-# Cache
-.pytest_cache/
-
-# OS
 Thumbs.db
 .DS_Store
 
-# API Keys
-config.json
+# Logs
+*.log
+smaran_system.log
+clap_debug.log
+gcm-diagnose.log
+scratch_output.log
 
-# Temporary
+# Testing & Scratch
+scratch/
+scan_secrets.py
+tempCodeRunnerFile.py
 temp/
 tmp/
-
-vision_venv/
-tempCodeRunnerFile.py
-__pycache__/
-scratch/
