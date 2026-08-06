@@ -24,17 +24,17 @@ class SmaranBrain:
                 if llama3_models:
                     self.model = llama3_models[0]
                     self.use_ollama = True
-                    print(f"🤖 [SMARAN COGNITIVE] Connected to local Ollama. Deploying {self.model} core...")
+                    print(f"smaran is activated . Deploying {self.model} core...")
                 elif phi3_models:
                     self.model = phi3_models[0]
                     self.use_ollama = True
-                    print(f"🤖 [SMARAN COGNITIVE] Connected to local Ollama. Deploying {self.model} core...")
+                    print(f"smaran is activated . Connected to local Ollama. Deploying {self.model} core...")
                 elif model_names:
                     self.model = model_names[0]
                     self.use_ollama = True
-                    print(f"🤖 [SMARAN COGNITIVE] Connected to local Ollama. Deploying {self.model} core...")
+                    print(f"smaran is activated . Connected to local Ollama. Deploying {self.model} core...")
             except Exception:
-                print("🔌 [SMARAN COGNITIVE] Ollama server offline. Reverting to local heuristic syntax core...")
+                print("[SMARAN COGNITIVE] Ollama server offline. Reverting to local heuristic syntax core...")
 
     def think(self, user_input):
         """Translates natural speech strings directly into actionable system intents"""
@@ -53,11 +53,11 @@ class SmaranBrain:
 
         # Check conversational patterns first to override LLM and heuristics
         # Pattern 1: How is it doing
-        if any(p in text for p in ["how are you", "how're you", "how are you doing", "how you doing", "how are u", "how're u"]):
+        if any(p in text for p in ["how are you", "how're you", "how are you doing", "how you doing", "how are u", "how're u","hows it going on"]):
             return {
-                "action": "conversational_reply",
-                "target": "none",
-                "parameter": "none",
+                "action": "conversational_reply", #this replies back to the user with a conversational response, not an action on a specific target 
+                "target": "none", #target is none because this is a conversational reply, not an action on a specific target
+                "parameter": "none", #parameter is none because this is a conversational reply, not an action on a specific parameter
                 "spoken_response": "I am operating at peak efficiency, boss. Thank you for asking. How can I assist you today?"
             }
             
@@ -94,45 +94,36 @@ class SmaranBrain:
         # Grok: original + expanded phonetic variants (grook, rook, rock)
         # NOTE: "clock" was removed — it caused "open clock" to route to Grok instead
         # of the Windows Clock app. Only keep variants that cannot be misheard as an app.
-        grok_variants = ["grow", "gro", "grau", "rok", "grok", "grook", "rook"]
-        gemini_variants = ["gemini"]
-        # Perplexity: catches per+plex combos and phonetic mishearings
-        # We require at least one 4+ char fragment to avoid triggering on unrelated words like "per" alone
-        perplexity_direct = ["perplexity", "perplex", "plecks", "plexity"]
-        perplexity_partial = ["plex", "pleks"]  # Needs "per" or "city" nearby
-
+        grok_variants = ["grow", "gro", "grau", "rock","rouk","roc", "grok", "grook", "rook"]
+        gemini_variants = ["gemini","gem","jemini","jem","jemy","jemmy","jemmyi","jemini","ini","inai"]
+        perplexity_variants = ["perplexity", "perplex", "plecks", "plexity","plex", "pleks","perplexed", "perplexes", "perplexing"]
+        copilot_variants = ["microsoft copilot","copilot", "co-pilot", "co pilot", "co-pilots", "co pilots", "co-piloting", "co piloting"]
         has_chatgpt = any(v in text.split() for v in chatgpt_variants) or any(v in text for v in ["chatgpt", "chat-gpt", "chat gpt"])
         has_claude = any(v in text.split() for v in claude_variants) or any(v in text for v in ["claude"])
         has_grok = any(v in text.split() for v in grok_variants) or any(v in text for v in ["grok"])
         has_gemini = any(v in text.split() for v in gemini_variants) or any(v in text for v in ["gemini"])
-
-        # Perplexity detection: direct match OR (partial + context syllables)
-        has_perplexity = (
-            any(v in text for v in perplexity_direct) or
-            (any(v in text for v in perplexity_partial) and any(s in text for s in ["per", "city", "ity", "flex"])) or
-            ("per" in text.split() and "plex" in text) or
-            ("flex" in text.split() and any(s in text for s in ["per", "plex"]))
-        )
-
+        has_perplexity = any(v in text.split() for v in perplexity_variants) or any(v in text for v in ["perplexity", "perplex", "plexity"])
+        has_copilot = any(v in text.split() for v in copilot_variants) or any(v in text for v in ["copilot", "microsoft copilot"])
         # Guard: only route to workspace if query is clearly about opening an AI browser tool,
         # NOT when the matching word is part of an OS app request (e.g. "open clock").
-        _os_app_words = {"clock", "calc", "calculator", "notepad", "explorer", "timer", "alarm"}
+        _os_app_words = {"clock", "calc", "calculator", "notepad", "explorer", "timer", "paint","settings","alarm","volume", "task manager", "cmd", "command prompt", "terminal"}
         _ws_words = set(text.split())
         _is_os_request = bool(_ws_words & _os_app_words)
 
-        if (has_chatgpt or has_claude or has_grok or has_gemini or has_perplexity) \
-                and any(w in text for w in ["open", "launch", "workspace"]) \
-                and not _is_os_request:
-            detected_workspaces = []
+        if (has_chatgpt or has_claude or has_grok or has_gemini or has_perplexity or has_copilot) \
+                and any(w in text for w in ["open", "launch", "workspace","activate","start"]) \
+                and not _is_os_request: 
+            detected_workspaces = [] 
             if has_gemini: detected_workspaces.append("gemini")
             if has_chatgpt: detected_workspaces.append("chatgpt")
             if has_claude: detected_workspaces.append("claude")
             if has_grok: detected_workspaces.append("grok")
             if has_perplexity: detected_workspaces.append("perplexity")
-            
+            if has_copilot: detected_workspaces.append("copilot")
+
             # Detect browser
-            browsers = ["operagx", "opera gx", "opera", "chrome", "firefox", "edge", "msedge", "brave", "safari", "browser"]
-            browser_target = "browser"
+            browsers = ["operagx", "opera gx", "opera", "chrome", "edge", "msedge", "brave", "browser"]
+            browser_target = "browser" #what is browser here 
             for b in browsers:
                 if b in text:
                     browser_target = b
@@ -140,7 +131,7 @@ class SmaranBrain:
             normalized_browser = "msedge" if browser_target == "edge" else browser_target
             
             return {
-                "action": "ecosystem_workspace",
+                "action": "activating_browser_workspace",
                 "target": normalized_browser,
                 "parameter": ",".join(detected_workspaces),
                 "spoken_response": f"Launching {', '.join(detected_workspaces)} in {normalized_browser}, boss."
@@ -157,11 +148,11 @@ class SmaranBrain:
                 if llama3_models:
                     self.model = llama3_models[0]
                     self.use_ollama = True
-                    print(f"🤖 [SMARAN COGNITIVE] Connected to local Ollama. Deploying {self.model} core...")
+                    print(f"smaran is activated . Connected to local Ollama. Deploying {self.model} core...")
                 elif phi3_models:
                     self.model = phi3_models[0]
                     self.use_ollama = True
-                    print(f"🤖 [SMARAN COGNITIVE] Connected to local Ollama. Deploying {self.model} core...")
+                    print(f"smaran is activated . Connected to local Ollama. Deploying {self.model} core...")
             except Exception:
                 pass  # Ollama still offline, continue with heuristics
 
@@ -169,7 +160,7 @@ class SmaranBrain:
             try:
                 return self._think_llm(user_input)
             except Exception as e:
-                print(f"⚠️ [SMARAN COGNITIVE ERROR] LLM inference failed: {e}. Falling back to heuristics...")
+                print(f"Smaran LLM inference failed: {e}. Falling back to heuristics...")
                 
         # --- GROK REASONING LAYER ---
         # Route knowledge/reasoning queries to Grok BEFORE falling back to heuristics.
@@ -186,14 +177,14 @@ class SmaranBrain:
 
     def _think_llm(self, user_input):
         system_prompt = (
-            "You are Smaran, a highly sophisticated, polite, and witty voice assistant. "
-            "Address the user as 'sir' or 'ma'am'. Speak with a refined British cadence. "
+            "You are Smaran, a highly sophisticated, polite, and witty voice desktop assistant. "
+            "Address the user as 'sir' only. Speak with a refined British cadence. "
             "You must analyze the user's request and respond strictly in valid JSON format. "
             "No extra markdown, no wrap blocks, only raw JSON.\n\n"
             "JSON Schema:\n"
             "{\n"
-            '  "action": "launch_app" | "system_control" | "conversational_reply" | "shutdown" | "weather_scanner" | "morning_briefing" | "ecosystem_workspace" | "youtube_music" | "random_generator" | "wisdom_vault" | "countdown_timer",\n'
-            '  "target": "chrome" | "msedge" | "firefox" | "opera" | "brave" | "operagx" | "opera gx" | "notepad" | "calculator" | "cmd" | "explorer" | "task manager" | "volume_up" | "volume_down" | "mute" | "none",\n'
+            '  "action": "launch_app" | "system_control" | "conversational_reply" | "shutdown" | "weather_scanner" | "morning_briefing" | "activating_browser_workspace" | "youtube_music" | "random_generator" | "wisdom_vault" | "countdown_timer" ,\n'
+            '  "target": "chrome" | "msedge" |  "opera" | "brave" | "operagx" | "opera gx" | "notepad" | "calculator" | "cmd" |"terminal" | "paint" | "settings" | "explorer" | "task manager" | "volume_up" | "volume_down" | "mute" | "none",\n'
             '  "parameter": "search query, URLs, comma-separated bounds like min,max, or target values/genres",\n'
             '  "spoken_response": "Your spoken conversational reply as Smaran"\n'
             "}\n\n"
@@ -201,7 +192,7 @@ class SmaranBrain:
             "1. 'target' MUST be chosen ONLY from the allowed list in the schema. Never invent new targets. If no listed target matches the app, set target to 'none'.\n"
             "2. If the user asks for weather, set action='weather_scanner', target='none', parameter='none'.\n"
             "3. If the user asks for a morning brief/briefing, set action='morning_briefing', target='none', parameter='none'.\n"
-            "4. If the user wants to launch multiple workspace surfaces (any combinations of gemini, chatgpt, claude, grok), set action='ecosystem_workspace', target=requested_browser (or 'browser'), and parameter=comma-separated list of workspaces (e.g. 'gemini,chatgpt').\n"
+            "4. If the user wants to launch multiple workspace surfaces (any combinations of gemini, chatgpt, claude, grok), set action='activating_browser_workspace', target=requested_browser (or 'browser'), and parameter=comma-separated list of workspaces (e.g. 'gemini,chatgpt').\n"
             "5. If the user wants to play music or open YouTube Music, set action='youtube_music', target=requested_browser (or 'browser'), and parameter=song/artist name (or 'none' if no query).\n"
             "6. If the user wants a random number/value between two bounds, set action='random_generator', target='none', and parameter='min,max' (e.g. '5,20').\n"
             "7. If the user wants a quote/wisdom, set action='wisdom_vault', target='none', and parameter=requested genre ('courage', 'freedom', 'romance', 'history', 'grit', 'confidence', 'love', 'self-improvement', 'time-management', 'health', 'spiritual', 'mental health', 'motivation', or 'none').\n"
