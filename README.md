@@ -9,7 +9,7 @@ Unlike traditional chatbot-style assistants, Smaran combines **desktop automatio
 ---
 
 # 🎥 Demo
-
+https://github.com/Jeevankrishna06/SMARAN-AI-assistant/issues/1#issue-4928326762
 
 
 ---
