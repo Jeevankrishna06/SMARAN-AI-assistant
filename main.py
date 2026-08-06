@@ -395,7 +395,9 @@ class SmaranCore:
             "word", "term", "summary", "summarize", "forecast", "weather", "info", "information",
             "headline", "headlines", "detail", "details", "please", "pls", "can", "you", "could", "would",
             "and", "or", "but", "our", "my", "your", "his", "her", "their", "its", "us", "them", "here", "there",
-            "it", "this", "that", "some", "any", "all", "out", "when", "time"
+            "it", "this", "that", "some", "any", "all", "out", "when", "time",
+            "who", "whom", "whose", "which", "how", "where", "why", "whats", "s", "re",
+            "today", "tomorrow", "tonight", "now", "yesterday", "todya", "tody", "tommorow", "toda", "day"
         }
         
         # Loop to strip fillers from start and end, leaving at least one word
@@ -566,17 +568,30 @@ class SmaranCore:
         if not last_entity:
             return user_input, None
             
-        # Pronouns to replace
-        pronouns = ["he", "she", "it", "they", "him", "his", "her", "them", "their"]
+        # Determine valid pronouns based on last_agent and last_entity
+        # Impersonal 'it' often causes false triggers for person entities, so we exclude it.
+        is_person = any(w[0].isupper() for w in last_entity.split() if w)
         
+        if last_agent == "weather":
+            valid_pronouns = ["it", "its", "there"]
+        elif last_agent in ("wikipedia", "news"):
+            if is_person:
+                valid_pronouns = ["he", "she", "they", "him", "his", "her", "them", "their"]
+            else:
+                valid_pronouns = ["it", "its", "they", "them", "their"]
+        elif last_agent == "dictionary":
+            valid_pronouns = ["it", "its", "this", "that"]
+        else:
+            valid_pronouns = ["he", "she", "it", "they", "him", "his", "her", "them", "their"]
+            
         # Check if any pronoun is in the query (as a word)
         words = re.findall(r'\b\w+\b', user_input.lower())
-        has_pronoun = any(p in words for p in pronouns)
+        has_pronoun = any(p in words for p in valid_pronouns)
         
         if has_pronoun:
             # Replace pronouns with last_entity
             resolved_query = user_input
-            for p in pronouns:
+            for p in valid_pronouns:
                 resolved_query = re.sub(rf'\b{p}\b', last_entity, resolved_query, flags=re.IGNORECASE)
             print(f"[INTEL] Context resolved: Pronoun replaced with '{last_entity}' -> '{resolved_query}'")
             return resolved_query, last_agent
@@ -594,6 +609,10 @@ class SmaranCore:
         if intent_lower == "weather":
             cleaned_text = query.lower().strip()
             patterns = [
+                r"whats the weather in\s+(.+)",
+                r"what s the weather in\s+(.+)",
+                r"whats the weather of\s+(.+)",
+                r"what s the weather of\s+(.+)",
                 r"what is the weather in\s+(.+)",
                 r"what's the weather in\s+(.+)",
                 r"what is the weather of\s+(.+)",
@@ -734,37 +753,41 @@ class SmaranCore:
                 topic = cleaned_text
             return self._clean_extracted_entity(topic)
             
-        elif intent_lower == ("research", "wikipedia"):
-            topic = query.lower()
-            wiki_removals = [
-                r"what is the \s+(.+)",
-                r"what is \s+(.+)",
-                r"what's the \s+(.+)",
-                r"who is \s+(.+)",
-                r"search wikipedia for \s+(.+)",
-                r"wikipedia for \s+(.+)",
-                r"wikipedia of \s+(.+)",
-                r"search wiki for \s+(.+)",
-                r"wiki for \s+(.+)",
-                r"wiki of \s+(.+)",
-                r"wikipedia",
-                r"wiki",
-                r"on wiki",
-                r"on wikipedia",
-                r"tell me about \s+(.+)",
-                r"look up \s+(.+)",
-                r"search for \s+(.+)",
-                r"get me \s+(.+)",
-                r"give me information about \s+(.+)",
-                r"give me info about \s+(.+)",
-                r"give me intel about \s+(.+)",
-                r"give me intel on \s+(.+)",
-                r"research about \s+(.+)",
-                r"research on \s+(.+)"
+        elif intent_lower in ("research", "wikipedia"):
+            cleaned_text = query.lower().strip()
+            patterns = [
+                r"search wikipedia for\s+(.+)",
+                r"search wiki for\s+(.+)",
+                r"wikipedia for\s+(.+)",
+                r"wikipedia of\s+(.+)",
+                r"wiki for\s+(.+)",
+                r"wiki of\s+(.+)",
+                r"tell me about\s+(.+)",
+                r"look up\s+(.+)",
+                r"search for\s+(.+)",
+                r"get me\s+(.+)",
+                r"give me information about\s+(.+)",
+                r"give me info about\s+(.+)",
+                r"give me intel about\s+(.+)",
+                r"give me intel on\s+(.+)",
+                r"research about\s+(.+)",
+                r"research on\s+(.+)",
+                r"what is the\s+(.+)",
+                r"what is\s+(.+)",
+                r"what's the\s+(.+)",
+                r"who is the\s+(.+)",
+                r"who is\s+(.+)",
+                r"who was the\s+(.+)",
+                r"who was\s+(.+)",
             ]
-            wiki_removals.sort(key=len, reverse=True)
-            for w in wiki_removals:
-                topic = topic.replace(w, "")
+            topic = None
+            for pattern in patterns:
+                match = re.search(pattern, cleaned_text)
+                if match:
+                    topic = match.group(1).strip()
+                    break
+            if not topic:
+                topic = cleaned_text
             return self._clean_extracted_entity(topic)
             
         elif intent_lower == "reasoning":
@@ -1036,8 +1059,9 @@ class SmaranCore:
         
         # Track context if entity is extracted successfully
         if extracted_entity and selected_agent in ("weather", "dictionary", "wikipedia", "news"):
-            self.intel_context["last_entity"] = extracted_entity
-            self.intel_context["last_agent"] = selected_agent
+            if len(extracted_entity.split()) <= 4:
+                self.intel_context["last_entity"] = extracted_entity
+                self.intel_context["last_agent"] = selected_agent
             
         # 4. Route and Execute
         response = None
@@ -1064,7 +1088,7 @@ class SmaranCore:
             print(f"{agent_executed} resulted in invalid/error. Entering 2nd strategy")
             try:
                 print(f"[INTEL MODE] Querying Gemini as central fallback...")
-                response = self.gemini_agent.query_with_history(resolved_query, self.intel_history)
+                response = self.gemini_agent.query_with_history(resolved_query, self.intel_history, is_fallback=True)
                 agent_executed = "GeminiAgent"
                 is_valid = self._validate_response(response)
             except Exception as e:

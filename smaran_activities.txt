@@ -1,0 +1,34 @@
+# Smaran AI Assistant: Core Framework & Execution Rules
+
+This document defines the strict logical framework and parameters for Smaran's automated skills. The Antigravity agent must use these execution rules to implement the function calling infrastructure.
+
+---
+
+### RULE 1: Environmental Awareness (Weather & Battery)
+* **Skill 1: Weather Scanner**
+  * **Logic:** Query `https://wttr.in/Bengaluru?format=%t+%C` using a standard HTTP GET block.
+  * **Rule:** If the network request fails, fallback gracefully to a standard conversational reply stating that the local weather station is temporarily unreachable.
+* **Skill 8: Morning Briefing Aggregator**
+  * **Logic:** Consolidate system date, day of the week, current 12-hour clock time, the output of the Weather Scanner, and the laptop's physical battery capacity percentage.
+  * **Rule:** Use a system utility parser to pull live hardware battery metrics. If running on a desktop without a battery, default to "Wall Power Connected".
+
+### RULE 2: Multi-Surface Workspace Control (Web Browser)
+* **Skill 2: Ecosystem Workspace Launcher**
+  * **Logic:** Expose an array parameter to accept multiple targets simultaneously (e.g., ["gemini", "chatgpt", "claude", "grok"]).
+  * **Rule:** Iterate through the array and invoke native browser hooks to spawn each workspace in a dedicated, isolated browser tab sequentially without crashing the main application thread.
+* **Skill 4: YouTube Music Director**
+  * **Logic:** Process an optional search query string. If a specific song or artist is specified, redirect the browser to `https://music.youtube.com/search?q={query}`. If no query is provided, default directly to the main user dashboard URL.
+* **Skill 7: Smart Google Search Interface**
+  * **Logic:** Isolate the user's explicit search phrase. Strip out meta-phrases like "search for" or "look up from google".
+  * **Rule:** Convert all spaces into `+` characters and pass the sanitized query string cleanly to the default browser search query parameter.
+
+### RULE 3: Algorithmic Logic Engines (Math, Quotes, and Timers)
+* **Skill 3: Random Value Generator**
+  * **Logic:** Accept two boundary integers: Minimum (a) and Maximum (b).
+  * **Rule:** Execute a strict pseudo-random integer generation block that is fully inclusive of both boundary values. Reject execution if input (a) is greater than input (b).
+* **Skill 5: Curated Wisdom Vault**
+  * **Logic:** Maintain an internal lookup directory categorized by specific aesthetic genres (e.g., stoic, motivation, tech).
+  * **Rule:** If the user doesn't specify a genre, randomly pick an entry from a default "general wisdom" bucket.
+* **Skill 6: Target Destination Countdown Timer**
+  * **Logic:** Accept a future target timestamp string (formatted cleanly as 24-hour time HH:MM).
+  * **Rule:** Capture the precise current system time. Subtract the current timestamp from the target destination timestamp. If the destination time evaluates to a value earlier than right now, automatically assume the deadline falls on the following day and add a 24-hour delta offset before returning the calculated hours and minutes remaining.
