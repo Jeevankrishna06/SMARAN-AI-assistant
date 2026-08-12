@@ -33,15 +33,15 @@ class OSController:
             return self.compute_and_show_in_calculator(parameter)
         elif action == "weather_scanner":
             return self.scan_weather()
-        elif action == "morning_briefing":
+        elif action in ["morning_briefing", "briefing_system"]:
             return self.morning_briefing()
-        elif action == "ecosystem_workspace":
+        elif action in ["ecosystem_workspace", "activating_browser_workspace"]:
             return self.launch_ecosystem_workspace(target, parameter)
         elif action == "youtube_music":
             return self.launch_youtube_music(target, parameter)
         elif action == "random_generator":
             return self.generate_random_value(parameter)
-        elif action == "wisdom_vault":
+        elif action in ["wisdom_vault", "wisdom_library"]:
             return self.retrieve_wisdom(parameter)
         elif action == "countdown_timer":
             return self.countdown_timer(parameter)
@@ -492,11 +492,15 @@ class OSController:
                     "fileexplorer":   "explorer.exe",
                     "file explorer":  "explorer.exe",
                     "task manager":   "taskmgr.exe",
+                    "terminal":       "cmd.exe",
+                    "paint":          "mspaint.exe",
+                    "mspaint":        "mspaint.exe",
                     # UWP apps launched via ms-protocol URIs
                     "clock":          "start ms-clock:",
                     "alarms":         "start ms-clock:",
                     "timer":          "start ms-clock:timer",
                     "whatsapp":       "start whatsapp:",
+                    "copilot":        "start ms-copilot:",
                 }
                 
                 cmd = common_apps.get(app_name, app_name)
@@ -635,7 +639,8 @@ class OSController:
             "chatgpt": "https://chatgpt.com",
             "claude": "https://claude.ai",
             "grok": "https://grok.com",
-            "perplexity": "https://www.perplexity.ai"
+            "perplexity": "https://www.perplexity.ai",
+            "copilot": "https://copilot.microsoft.com"
         }
         
         targets = [t.strip() for t in parameter.split(",") if t.strip()]

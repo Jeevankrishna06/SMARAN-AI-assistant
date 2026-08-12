@@ -1434,11 +1434,15 @@ class SmaranCore:
                 return f"Opening {display_browser}..."
             elif target == "notepad":
                 return "Opening Notepad boss.."
-            elif target == "calculator":
+            elif target == "calculator" or target == "calc":
                 return "Opening Calculator,boss ..."
-            elif target == "cmd":
+            elif target in ["cmd", "terminal"]:
                 return "Opening Terminal boss ..."
-            elif target == "explorer" or target == "file explorer":
+            elif target in ["paint", "mspaint"]:
+                return "Opening Paint, boss..."
+            elif target == "copilot":
+                return "Opening Microsoft Copilot, boss..."
+            elif target in ["explorer", "file explorer", "fileexplorer"]:
                 return "Opening File Explorer,boss..."
             elif target == "task manager":
                 return "Opening Task Manager,boss..."
@@ -1456,15 +1460,15 @@ class SmaranCore:
             return "Shutting Down ,boss..."
         elif action == "weather_scanner":
             return "Scanning Weather boss..."
-        elif action == "briefing":
+        elif action in ["briefing", "morning_briefing", "briefing_system"]:
             return "Preparing your Briefing , boss ..."
-        elif action == "ecosystem_workspace":
+        elif action in ["ecosystem_workspace", "activating_browser_workspace"]:
             return "activating workspace,boss..."
         elif action == "youtube_music":
             return "Opening YouTube Music,boss..."
         elif action == "random_generator":
             return "Generating Value for you boss..."
-        elif action == "wisdom_vault":
+        elif action in ["wisdom_vault", "wisdom_library"]:
             return "seeking a  Quote from your vault, boss..."
         elif action == "countdown_timer":
             return "Calculating remaining time, boss..."
@@ -1572,8 +1576,10 @@ class SmaranCore:
             # Define which actions are pure OS automation (must never go to Groq)
             OS_ACTIONS = {
                 "launch_app", "system_control", "calculator_compute",
-                "morning_briefing", "ecosystem_workspace",
-                "youtube_music", "random_generator", "wisdom_vault",
+                "morning_briefing", "briefing_system",
+                "ecosystem_workspace", "activating_browser_workspace",
+                "youtube_music", "random_generator", 
+                "wisdom_vault", "wisdom_library",
                 "countdown_timer", "set_clock_timer", "study_mode", "developer_mode", "fun_mode", "deep_mode", "shutdown",
                 "activate_vision", "deactivate_vision",
             }
@@ -1834,8 +1840,8 @@ class SmaranCore:
                 
             # Speak the dynamic execution output for informational/algorithmic actions
             speak_actions = [
-                "weather_scanner", "morning_briefing", "random_generator",
-                "wisdom_vault", "countdown_timer", "set_clock_timer",
+                "weather_scanner", "morning_briefing", "briefing_system", "random_generator",
+                "wisdom_vault", "wisdom_library", "countdown_timer", "set_clock_timer",
                 "calculator_compute",   # Speak the computed result back to the user
                 "activate_vision", "deactivate_vision",
             ]

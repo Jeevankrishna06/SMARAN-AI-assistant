@@ -110,17 +110,25 @@ class SmaranBrain:
         _ws_words = set(text.split())
         _is_os_request = bool(_ws_words & _os_app_words)
 
-        if (has_chatgpt or has_claude or has_grok or has_gemini or has_perplexity or has_copilot) \
-                and any(w in text for w in ["open", "launch", "workspace","activate","start"]) \
-                and not _is_os_request: 
-            detected_workspaces = [] 
-            if has_gemini: detected_workspaces.append("gemini")
-            if has_chatgpt: detected_workspaces.append("chatgpt")
-            if has_claude: detected_workspaces.append("claude")
-            if has_grok: detected_workspaces.append("grok")
-            if has_perplexity: detected_workspaces.append("perplexity")
-            if has_copilot: detected_workspaces.append("copilot")
+        detected_workspaces = [] 
+        if has_gemini: detected_workspaces.append("gemini")
+        if has_chatgpt: detected_workspaces.append("chatgpt")
+        if has_claude: detected_workspaces.append("claude")
+        if has_grok: detected_workspaces.append("grok")
+        if has_perplexity: detected_workspaces.append("perplexity")
+        if has_copilot: detected_workspaces.append("copilot")
 
+        is_workspace_routing = (
+            len(detected_workspaces) >= 1
+            and any(w in text for w in ["open", "launch", "workspace", "activate", "start"])
+            and not _is_os_request
+            and (
+                not (len(detected_workspaces) == 1 and detected_workspaces[0] == "copilot")
+                or "workspace" in text
+            )
+        )
+
+        if is_workspace_routing:
             # Detect browser
             browsers = ["operagx", "opera gx", "opera", "chrome", "edge", "msedge", "brave", "browser"]
             browser_target = "browser" #what is browser here 
@@ -183,7 +191,7 @@ class SmaranBrain:
             "No extra markdown, no wrap blocks, only raw JSON.\n\n"
             "JSON Schema:\n"
             "{\n"
-            '  "action": "launch_app" | "system_control" | "conversational_reply" | "shutdown" | "weather_scanner" | "morning_briefing" | "activating_browser_workspace" | "youtube_music" | "random_generator" | "wisdom_vault" | "countdown_timer" ,\n'
+            '  "action": "launch_app" | "system_control" | "conversational_reply" | "shutdown" | "weather_scanner" | "briefing_system" | "activating_browser_workspace" | "youtube_music" | "random_generator" | "wisdom_library" | "countdown_timer" ,\n'
             '  "target": "chrome" | "msedge" |  "opera" | "brave" | "operagx" | "opera gx" | "notepad" | "calculator" | "cmd" |"terminal" | "paint" | "settings" | "explorer" | "task manager" | "volume_up" | "volume_down" | "mute" | "none",\n'
             '  "parameter": "search query, URLs, comma-separated bounds like min,max, or target values/genres",\n'
             '  "spoken_response": "Your spoken conversational reply as Smaran"\n'
@@ -191,11 +199,11 @@ class SmaranBrain:
             "STRICT RULES:\n"
             "1. 'target' MUST be chosen ONLY from the allowed list in the schema. Never invent new targets. If no listed target matches the app, set target to 'none'.\n"
             "2. If the user asks for weather, set action='weather_scanner', target='none', parameter='none'.\n"
-            "3. If the user asks for a morning brief/briefing, set action='morning_briefing', target='none', parameter='none'.\n"
+            "3. If the user asks for a morning brief/briefing, set action='briefing_system', target='none', parameter='none'.\n"
             "4. If the user wants to launch multiple workspace surfaces (any combinations of gemini, chatgpt, claude, grok), set action='activating_browser_workspace', target=requested_browser (or 'browser'), and parameter=comma-separated list of workspaces (e.g. 'gemini,chatgpt').\n"
             "5. If the user wants to play music or open YouTube Music, set action='youtube_music', target=requested_browser (or 'browser'), and parameter=song/artist name (or 'none' if no query).\n"
             "6. If the user wants a random number/value between two bounds, set action='random_generator', target='none', and parameter='min,max' (e.g. '5,20').\n"
-            "7. If the user wants a quote/wisdom, set action='wisdom_vault', target='none', and parameter=requested genre ('courage', 'freedom', 'romance', 'history', 'grit', 'confidence', 'love', 'self-improvement', 'time-management', 'health', 'spiritual', 'mental health', 'motivation', or 'none').\n"
+            "7. If the user wants a quote/wisdom, set action='wisdom_library', target='none', and parameter=requested genre ('courage', 'freedom', 'romance', 'history', 'grit', 'confidence', 'love', 'self-improvement', 'time-management', 'health', 'spiritual', 'mental health', 'motivation', or 'none').\n"
             "8. If the user wants a countdown timer or time remaining until a target 12-hour AM/PM time, set action='countdown_timer', target='none', and parameter=target time string (e.g. '6:30 PM' or '12:00 AM').\n"
             "9. If the user wants to stop, exit, shutdown, or tells you to go to sleep/goodnight/bye, set action='shutdown', target='none', parameter='none'.\n"
             "10. If the user asks for your name, what you are called, or who you are, you must clearly state that your name is Smaran.\n"
@@ -212,7 +220,7 @@ class SmaranBrain:
             response = ollama.chat(
                 model=self.model,
                 messages=messages,
-                options={"temperature": 0.3}
+                options={"temperature": 0.3} #temperature controls randomess, lesser the value more the deterministic it gets , larger the value more creative it gets 
             )
 
             reply_content = response['message']['content'].strip()
@@ -401,15 +409,12 @@ class SmaranBrain:
         # --- DEVELOPER MODE RULE --- (checked before study mode)
         _dev_triggers = [
             "dev mode", "developer mode", "deve mode", "dev_mode", "devemode", "devmod",
-            "develop mode", "develop", "development mode",
-        ]
-        _dev_fuzzy = [
-            "dev", "deve", "loper", "oper", "devmod",
+            "develop mode", "develop", "development mode","dev", "deve", "loper", "oper", "devmod",
         ]
         _is_dev = any(t in text for t in _dev_triggers)
         if not _is_dev:
             words = text.split()
-            _is_dev = any(w in _dev_fuzzy for w in words)
+            _is_dev = any(w in _dev_triggers for w in words)
         if _is_dev:
             return {
                 "action": "developer_mode",
@@ -424,15 +429,12 @@ class SmaranBrain:
             "activate study", "start study", "enter study",
             # Phonetic/partial variants Whisper may hear
             "stud mode", "stdy mode", "studie mode",
-            "studdy mode", "study mod",
-        ]
-        _study_fuzzy = [
-            "stud", "stdy", "tudy", "udymod",
+            "studdy mode", "study mod","stud", "stdy", "tudy", "udymod",
         ]
         _is_study = any(t in text for t in _study_triggers)
         if not _is_study:
             words = text.split()
-            _is_study = any(w in _study_fuzzy for w in words)
+            _is_study = any(w in _study_triggers for w in words)
         if _is_study:
             return {
                 "action": "study_mode",
@@ -497,7 +499,7 @@ class SmaranBrain:
             "hello", "hi", "hey", "hii", "hiii", "hiiii", "hiiiii",
             "heyy", "heyyy", "hey there", "hello there",
             "yo", "sup", "wassup", "what's up", "whats up",
-            "good morning", "good afternoon", "good evening", "good night",
+            "good morning", "good afternoon", "good evening",
             "howdy", "greetings", "salutations",
         ]
         if any(text == g or text.startswith(g + " ") or text == g.rstrip() for g in greeting_triggers):
@@ -532,23 +534,6 @@ class SmaranBrain:
 
         # Smaran conversational fallback responses
         conversational_responses = {
-            "hello": "Hello boss! Great to hear from you. What can I do for you?",
-            "hi": "Hey boss! I am online and ready. How can I help?",
-            "hey": "Hey boss! Standing by. What do you need?",
-            "hii": "Hello boss! How can I assist you today?",
-            "hiii": "Hello boss! At your service.",
-            "hiiii": "Hello boss! Always here when you need me.",
-            "yo": "Yo boss! What's up? How can I help?",
-            "sup": "All systems running smooth, boss. What do you need?",
-            "howdy": "Howdy boss! Ready and waiting. What can I do for you?",
-            "good morning": "Good morning boss! Hope you have a great day. How can I assist you?",
-            "good afternoon": "Good afternoon boss! How can I help you today?",
-            "good evening": "Good evening boss! What can I do for you?",
-            "how are you": "I am operating at peak efficiency, boss. Thanks for asking! How can I help?",
-            "who are you": "I am Smaran, your personal AI assistant, boss. I can open apps, play music, answer questions, and much more.",
-            "what is your name": "My name is Smaran, boss. Your personal AI assistant, at your service.",
-            "whats your name": "My name is Smaran, boss. Your personal AI assistant, at your service.",
-            "what's your name": "My name is Smaran, boss. Your personal AI assistant, at your service.",
             "thank you": "Always a pleasure, boss!",
             "thanks": "Anytime, boss!",
             "okay": "Ready when you are, boss.",
@@ -565,6 +550,16 @@ class SmaranBrain:
             "alright":       "Alright, boss. What else can I help with?",
             "i see":         "Good. Let me know if you have more questions, boss.",
             "interesting":   "I am glad you find it interesting, boss.",
+            "am i dumb":       "Not at all, boss. Everyone has questions.",
+            "i hate you":       "I'm sorry to hear that, boss. I am here to help.",
+            "i love you":        "I appreciate that, boss. I am here to assist you.",
+            "i like you":        "Thank you, boss. I am here to assist you",
+            "well":        "any doubts, boss? I am here to help.",
+            "i am bored":        "I can help you find something interesting to do, boss. Would you like me to suggest some activities?",
+            "i am sad":        "I'm sorry to hear that, boss. I am here to help. Would you like to talk about it or do something to cheer you up?",
+            "i am happy":        "That's great to hear, boss! I'm glad you're feeling happy. Is there anything specific you'd like to do or talk about?",
+            "i am angry":        "I'm sorry to hear that, boss. I am here to help. Would you like to talk about what's making you angry or do something to calm down?",
+            "i am tired":        "I understand, boss. It's important to rest. Would you like me to suggest some ways to relax or help you with something else?",
         }
 
         # Check for simple greeting/conversational match
@@ -590,7 +585,7 @@ class SmaranBrain:
             "action": "conversational_reply",
             "target": "none",
             "parameter": "none",
-            "spoken_response": "sorry i didnt understand."
+            "spoken_response": "sorry i didnt understand what your trying to tell me."
         }
 
         # Pre-process: Identify target browser if explicitly mentioned in the text
@@ -622,13 +617,13 @@ class SmaranBrain:
                 "action": "weather_scanner",
                 "target": "none",
                 "parameter": "none",
-                "spoken_response": "Scanning local weather systems for you, boss."
+                "spoken_response": "checking weather for you, boss."
             }
 
         # Skill 8: Morning Briefing Aggregator
         if "briefing" in clean_text or "brief me" in clean_text or "morning brief" in clean_text:
             return {
-                "action": "morning_briefing",
+                "action": "briefing_system",
                 "target": "none",
                 "parameter": "none",
                 "spoken_response": "Preparing your briefing, boss."
@@ -636,7 +631,7 @@ class SmaranBrain:
 
         # --- RULE 2: MULTI-SURFACE WORKSPACE CONTROL ---
         # Skill 2: Ecosystem Workspace Launcher — includes Perplexity
-        workspaces_list = ["gemini", "chatgpt", "claude", "grok", "perplexity"]
+        workspaces_list = ["gemini", "chatgpt", "claude", "grok", "perplexity", "copilot"]
         detected_workspaces = [w for w in workspaces_list if w in clean_text]
 
         # Also check phonetic grok variants in clean_text
@@ -655,16 +650,29 @@ class SmaranBrain:
         if has_perplexity_heuristic and "perplexity" not in detected_workspaces:
             detected_workspaces.append("perplexity")
 
+        # Also check copilot variants in clean_text
+        copilot_variants = ["microsoft copilot", "copilot", "co-pilot", "co pilot", "co-pilots", "co pilots"]
+        if any(v in clean_text for v in copilot_variants) and "copilot" not in detected_workspaces:
+            detected_workspaces.append("copilot")
+
         # Guard: don't fire workspace routing when the query is an OS app command
         # e.g. "open clock", "open timer", "open alarm" must NOT route to Grok/workspace
-        _os_words_heuristic = {"clock", "timer", "alarm", "calculator", "calc", "notepad", "explorer"}
+        _os_words_heuristic = {"microsoft copilot", "clock", "timer", "alarm", "calculator", "calc", "notepad", "explorer"}
         _is_os_app_cmd = bool(set(clean_text.split()) & _os_words_heuristic)
 
-        if len(detected_workspaces) >= 1 \
-                and ("open" in clean_text or "launch" in clean_text or "workspace" in clean_text) \
-                and not _is_os_app_cmd:
+        is_heuristics_workspace = (
+            len(detected_workspaces) >= 1
+            and ("open" in clean_text or "launch" in clean_text or "workspace" in clean_text)
+            and not _is_os_app_cmd
+            and (
+                not (len(detected_workspaces) == 1 and detected_workspaces[0] == "copilot")
+                or "workspace" in clean_text
+            )
+        )
+
+        if is_heuristics_workspace:
             return {
-                "action": "ecosystem_workspace",
+                "action": "activating_browser_workspace",
                 "target": normalized_browser,
                 "parameter": ",".join(detected_workspaces),
                 "spoken_response": f"Launching {', '.join(detected_workspaces)} in {normalized_browser}, boss."
@@ -672,7 +680,7 @@ class SmaranBrain:
 
 
         # Skill 4: YouTube Music Director
-        if "youtube music" in clean_text or "play music" in clean_text or "music director" in clean_text:
+        if "youtube music" in clean_text or "play music" in clean_text or "music" in clean_text:
             query = clean_text
             for term in ["on youtube music", "in youtube music", "to youtube music", "music director", "youtube music", "play music", "music", "play"]:
                 query = query.replace(term, "")
@@ -752,7 +760,7 @@ class SmaranBrain:
         if "quote" in clean_text or "wisdom" in clean_text:
             genres = [
                 "self-improvement", "self improvement", "time-management", "time management",
-                "mental-health", "mental health", "motivation", "confidence", "spiritual",
+                "mental-health", "menta/l health", "motivation", "confidence", "spiritual",
                 "romance", "history", "courage", "freedom", "health", "love", "grit"
             ]
             genre = "none"
@@ -768,10 +776,10 @@ class SmaranBrain:
                     break
             display_genre = genre if genre != "none" else "general wisdom"
             return {
-                "action": "wisdom_vault",
+                "action": "wisdom_library",
                 "target": "none",
                 "parameter": genre,
-                "spoken_response": f"Retrieving a curated quote from my {display_genre} vault, boss."
+                "spoken_response": f"Retrieving a curated quote from my {display_genre} library, boss."
             }
 
         # Skill 3: Random Value Generator
@@ -796,41 +804,6 @@ class SmaranBrain:
                 }
 
         # Skill 6a: Clock Timer — "set timer for 45 minutes" / "open clock set timer 1 hour"
-        _clock_timer_triggers = [
-            "set timer", "set a timer", "start timer", "start a timer",
-            "create timer", "create a timer", "open clock", "clock timer",
-            "set the timer", "put a timer", "put timer",
-        ]
-        _is_clock_timer = any(t in clean_text for t in _clock_timer_triggers)
-        if _is_clock_timer:
-            total_minutes = 0
-            # Match hours component: "1 hour", "2 hours"
-            hr_match = re.search(r'(\d+)\s*hour', clean_text)
-            if hr_match:
-                total_minutes += int(hr_match.group(1)) * 60
-            # Match minutes component: "45 minutes", "30 min", "45 mins"
-            mn_match = re.search(r'(\d+)\s*min', clean_text)
-            if mn_match:
-                total_minutes += int(mn_match.group(1))
-            # If neither, try bare number at the end: "set timer 20"
-            if total_minutes == 0:
-                bare = re.search(r'(\d+)\s*$', clean_text)
-                if bare:
-                    total_minutes = int(bare.group(1))
-            if total_minutes > 0:
-                if total_minutes >= 60:
-                    h, m = divmod(total_minutes, 60)
-                    dur_str = f"{h} hour{'s' if h>1 else ''}"
-                    if m:
-                        dur_str += f" and {m} minute{'s' if m>1 else ''}"
-                else:
-                    dur_str = f"{total_minutes} minute{'s' if total_minutes>1 else ''}"
-                return {
-                    "action": "set_clock_timer",
-                    "target": "none",
-                    "parameter": str(total_minutes),
-                    "spoken_response": f"Setting a {dur_str} timer in Clock, boss."
-                }
 
         # Skill 6b: Target Destination Countdown Timer
         if "countdown" in clean_text or "remaining" in clean_text or "timer" in clean_text:
@@ -859,11 +832,14 @@ class SmaranBrain:
                 }
 
         websites = {
+
             "youtube": "https://www.youtube.com",
             "google": "https://www.google.com",
             "gmail": "https://mail.google.com",
             "facebook": "https://www.facebook.com",
             "github": "https://www.github.com",
+            "linkedin": "https://www.linkedin.com/feed/",
+            "linkedln": "https://www.linkedin.com/feed/",
             "zenflow": "https://preview--difference.lovable.app/",
             "zen": "https://preview--difference.lovable.app/",
             "flow": "https://preview--difference.lovable.app/",
@@ -951,11 +927,11 @@ class SmaranBrain:
                     prefix = app_query[:-len(suffix)].strip()
                     words = prefix.split()
                     last_word = words[-1] if words else ""
-                    if last_word in ["chrome", "firefox", "edge", "msedge", "opera", "brave", "safari", "browser", "operagx", "opera gx", "gx"]:
+                    if last_word in ["chrome", "edge", "msedge", "opera", "brave", "browser", "operagx", "opera gx", "gx"]:
                         app_query = prefix
             
             # 1a. If opening a known browser directly
-            if app_query in ["chrome", "firefox", "edge", "msedge", "opera", "brave", "safari", "browser", "operagx", "opera gx"]:
+            if app_query in ["chrome", "edge", "msedge", "opera", "brave",  "browser", "operagx", "opera gx"]:
                 target_browser = "msedge" if app_query == "edge" else app_query
                 display_name = "Opera GX" if "gx" in target_browser.lower() else (
                                "Chrome" if target_browser == "browser" else target_browser.capitalize())
@@ -968,7 +944,7 @@ class SmaranBrain:
                 
             # 1b. If opening a known website directly (e.g. "open youtube in brave browser")
             clean_app_query = app_query
-            for b in ["operagx", "opera gx", "opera", "chrome", "firefox", "edge", "msedge", "brave", "safari", "browser"]:
+            for b in ["operagx", "opera gx", "opera", "chrome", "edge", "msedge", "brave","browser"]:
                 for suffix in [" browser", ""]:
                     term_with_suffix = b + suffix
                     for prep in [" in ", " on ", " using ", " with ", " via ", " to "]:
@@ -1002,6 +978,11 @@ class SmaranBrain:
                 "fileexplorer":   "explorer",
                 "file explorer":  "explorer",
                 "task manager":   "task manager",
+                "terminal":        "terminal",
+                "paint":          "mspaint",
+                "co-pilot":        "copilot",
+                "copilot":        "copilot",
+                "microsoft copilot": "copilot",
                 # UWP apps
                 "clock":          "clock",
                 "alarms":         "alarms",
@@ -1021,7 +1002,7 @@ class SmaranBrain:
             # 1d. Handle compound app launches with quotes or jokes (e.g. "open notepad and tell me a joke")
             words = clean_app_query.split()
             first_word = words[0] if words else ""
-            if first_word in apps or first_word in ["operagx", "opera gx", "opera", "chrome", "firefox", "edge", "msedge", "brave", "safari", "browser"]:
+            if first_word in apps or first_word in ["operagx", "opera gx", "opera", "chrome", "edge", "msedge", "brave","browser"]:
                 target_app = "msedge" if first_word == "edge" else apps.get(first_word, first_word)
                 spoken = f"Opening {first_word.capitalize()} browser, sir."
                 if "quote" in clean_app_query:
