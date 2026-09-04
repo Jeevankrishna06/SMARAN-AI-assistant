@@ -3,7 +3,6 @@ import sys
 import re
 import threading
 import time
-import vulture
 import winsound 
 import speech_recognition as sr
 from difflib import SequenceMatcher
@@ -17,16 +16,8 @@ from wikipedia_agent import WikipediaAgent
 from news_agent import NewsAgent
 from gemini_agent import GeminiAgent
 from whisper_transcriber import WhisperTranscriber
-from dotenv import load_dotenv
 import env_loader
 
-# Path to the .env file is actually inside a folder named .env (c:\Users\HP\OneDrive\Desktop\Smaran-AI Assistant(AGENT)\.env\.env)
-dotenv_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env", ".env")
-if os.path.exists(dotenv_file):
-    load_dotenv(dotenv_file)
-else:
-    # Try normal load_dotenv fallback
-    load_dotenv()
 # Configure stdout encoding to handle emojis on Windows console
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -928,7 +919,7 @@ class SmaranCore:
         elif "short" in text or "concise" in text:
             return self.wikipedia_agent.get_short_summary(topic)
         elif "find out" in text or "tell me about" in text or "information" in text:
-            return self.wikipedia_agent.get_information(topic)
+            return self.wikipedia_agent.get_summary(topic)
         else:
             return self.wikipedia_agent.get_summary(topic)
 

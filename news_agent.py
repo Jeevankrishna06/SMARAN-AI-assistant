@@ -1,8 +1,7 @@
 import os
 import requests
 import time
-from dotenv import load_dotenv
-load_dotenv()
+import env_loader
 
 class NewsAgent:
     """
@@ -10,7 +9,7 @@ class NewsAgent:
     Requires the GNEWS_API_KEY environment variable to be set.
     """
 
-    BASE_URL = os.getenv("BASE_URL_NEWS")
+    BASE_URL = os.getenv("BASE_URL_NEWS") or "https://gnews.io/api/v4"
 
     def __init__(self):
         self._api_key = os.getenv("NEWS_API_KEY")

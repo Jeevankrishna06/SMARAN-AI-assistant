@@ -132,9 +132,6 @@ class OSController:
                 return p
         return None
 
-    def _get_chrome_path(self):
-        return self._get_browser_path("chrome")
-
     # ─────────────────────────────────────────────────────────────────────────
     # CALCULATOR COMPUTE ENGINE
     # ─────────────────────────────────────────────────────────────────────────
@@ -1457,12 +1454,16 @@ class OSController:
             DETACHED_PROCESS = 0x00000008
             CREATE_NEW_PROCESS_GROUP = 0x00000200
             
-            venv_python = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vision_venv", "Scripts", "python.exe")
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            venv_python = os.path.join(base_dir, "vision_venv", "Scripts", "python.exe")
             if not os.path.exists(venv_python):
                 venv_python = sys.executable
 
+            launcher_path = os.path.join(base_dir, "vision_launcher.py")
+
             subprocess.Popen(
-                [venv_python, "vision_launcher.py"],
+                [venv_python, launcher_path],
+                cwd=base_dir,
                 creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
             )
             time.sleep(1.5)

@@ -1,5 +1,4 @@
 import sys
-import time
 from vision_mode import VisionMode
 
 def main():
@@ -13,4 +12,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-#explain how vision mode works- Vision Mode is a feature that allows a system to process and interpret visual data from cameras or other imaging devices. It typically involves several key components:

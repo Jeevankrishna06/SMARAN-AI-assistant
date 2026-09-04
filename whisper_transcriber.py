@@ -2,7 +2,6 @@ import numpy as np
 import speech_recognition as sr
 import sys
 import os
-import json
 import requests
 import io
 import env_loader

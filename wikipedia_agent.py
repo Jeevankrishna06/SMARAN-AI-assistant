@@ -127,10 +127,6 @@ class WikipediaAgent:
         """
         Returns the full page summary extract from Wikipedia.
         """
-        topic_clean = topic.strip().lower()
-        if topic_clean == "nikola tesla":
-            return "Nikola Tesla was a Serbian-American inventor, electrical engineer, mechanical engineer, and futurist best known for his contributions to alternating current electricity."
-
         try:
             data = self._get_topic_data(topic)
             if not data:
@@ -146,14 +142,16 @@ class WikipediaAgent:
         except Exception:
             return "Sorry boss, I couldn't retrieve that information right now."
 
+    def get_information(self, topic: str) -> str:
+        """
+        Alias for get_summary for compatibility with natural language queries.
+        """
+        return self.get_summary(topic)
+
     def get_short_summary(self, topic: str) -> str:
         """
         Returns a concise 1-2 sentence explanation of the topic.
         """
-        topic_clean = topic.strip().lower()
-        if topic_clean == "nikola tesla":
-            return "Nikola Tesla was a Serbian-American inventor, electrical engineer, mechanical engineer, and futurist best known for his contributions to alternating current electricity."
-
         try:
             summary = self.get_summary(topic)
             if "Sorry, I could not" in summary or "Sorry boss" in summary:
@@ -177,14 +175,6 @@ class WikipediaAgent:
         """
         Returns a slightly longer summary suitable for voice research.
         """
-        topic_clean = topic.strip().lower()
-        if topic_clean == "nikola tesla":
-            return (
-                "Nikola Tesla was a Serbian-American inventor, electrical engineer, mechanical engineer, and futurist "
-                "best known for his contributions to alternating current electricity. He is also known for his "
-                "contributions to the design of the modern alternating current electricity supply system."
-            )
-
         try:
             data = self._get_topic_data(topic)
             if not data:
