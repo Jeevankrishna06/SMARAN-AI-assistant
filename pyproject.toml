@@ -1,0 +1,19 @@
+[tool.pyrefly]
+python-interpreter-path = ".venv/Scripts/python.exe"
+use-ignore-files = true
+project-excludes = [
+    "**/.venv/**",
+    "**/vision_venv/**",
+    "**/__pycache__/**",
+    "**/scratch/**",
+    "**/.git/**"
+]
+
+[tool.pyrefly.errors]
+implicit-any = "ignore"
+missing-attribute = "warn"
+untyped-import = "ignore"
+unknown-module = "warn"
+unresolved-import = "warn"
+bad-param-type = "warn"
+bad-return = "warn"
